@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
-Description: "Main Template for the deploy Environment for CONSULTORIA ESTRATEGICA ECONOMICA Y DIGITAL S.A.S by Bextsa"
+Description: "Main Template for the deploy Environment for Cliente S.A.S by Bextsa"
 
 #############################################################################################
 # MetaData
