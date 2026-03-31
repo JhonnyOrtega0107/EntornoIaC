@@ -1,0 +1,2427 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: "Main Template for the deploy Environment for CONSULTORIA ESTRATEGICA ECONOMICA Y DIGITAL S.A.S by Bextsa"
+
+#############################################################################################
+# MetaData
+#############################################################################################
+Metadata: 
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+      # VPC Hub
+      - Label:
+          default: "1. Amazon VPC Parameters Hub"
+        Parameters:
+          - NumberOfAZs
+          - AvailabilityZones
+          - VpcCidr
+
+      - Label:
+          default: "1.1 Amazon Subnets Parameters Hub"
+        Parameters:
+          - PublichubSubnet0Cidr
+          - PublichubSubnet1Cidr
+          - PublichubSubnet2Cidr
+          - ApphubSubnet0Cidr
+          - ApphubSubnet1Cidr
+          - ApphubSubnet2Cidr
+
+      - Label:
+          default: "1.2 Etiquetas - hub"
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+      - Label:
+          default: "1.3 Transit Gateway Parameters"
+        Parameters:
+          - TransitGatewayNameTag
+          - TransitGatewayAsn
+          - NumberOfAZshub
+          - AvailabilityZoneshub
+
+      - Label:
+          default: "1.4 Transit Gateway Options"
+        Parameters:
+          - AutoAcceptSharedAttachments
+          - DefaultRouteTableAssociation
+          - DefaultRouteTablePropagation
+          - DnsSupportTGW
+
+      - Label:
+          default: "1.5 Flow Logs Configuration"
+        Parameters:
+          - EnableFlowLogstgw
+          - FlowLogGroupNametgw
+
+      # VPC front web
+      - Label:
+          default: "2. Amazon VPC Parameters spoke front"
+        Parameters:
+          - NumberOfAZsfront
+          - AvailabilityZonesfront
+          - VpcCidrfront
+
+      - Label:
+          default: "2.1 Amazon Subnets Parameters spoke front web"
+        Parameters:
+          - PublichubSubnet0Cidrfront
+          - PublichubSubnet1Cidrfront
+          - PublichubSubnet2Cidrfront
+          - ApphubSubnet0Cidrfront
+          - ApphubSubnet1Cidrfront
+          - ApphubSubnet2Cidrfront
+
+      - Label:
+          default: "2.2 Etiquetas - front Web"
+        Parameters:
+          - TagCustomerfront
+          - TagEventfront
+          - TagVerticalfront
+          - TagTierfront
+          - TagRegionfront
+
+      - Label:
+          default: "2.3 Nombre de los Grupos de Seguridad Web Front"
+        Parameters:
+          - sgintweb
+          - sgasgweb
+          - sgasgwebadm
+          - sgalbwebfrn
+
+      - Label: 
+          default: "2.4 Datos implementacion ALB - Front Web"
+        Parameters:
+          - Albnamefrn
+          - ListenerProtocolfrn
+          - HttpListenerPortfrn
+          - HttpsListenerPortfrn
+          - SchemeTypefrn
+          - HealthCheckPathfrn
+          - TGNamefrn
+          - ACMCertificatefrn
+          - IngressAllowCidrfrn
+
+      - Label: 
+          default: "2.5 Etiquetas ALB - Front Web"
+        Parameters:
+          - TagCustomerfrn
+          - TagEventfrn
+          - TagVerticalfrn
+          - TagTierfrn
+          - TagRegionfrn
+
+      # - Label:  
+      #     default: " 2.6 Naming S3, PrivateLink"
+      #   Parameters: 
+      #     - BucketNamefrn
+      #     - InterfaceEndpointNamefrn
+      #     - GatewayEndpointNamefrn
+      #     - EnableLifecyclefrn
+
+      # - Label:
+      #     default: "2.7 Parámetros del Launch Template ASG"
+      #   Parameters:
+      #     - LaunchTemplateNamefw
+      #     - InstanceRoleNamefw
+      #     - ImageIdfw
+      #     - InstanceTypefw
+      #     - KeyNamefw
+
+      # - Label: 
+      #     default: "2.8 Parametros ambiente Autoescalado" 
+      #   Parameters:
+      #     - AutoScalingGroupNamefw
+      #     - MinSizefw
+      #     - MaxSizefw
+      #     - DesiredCapacityfw
+
+      # VPC Back web
+      - Label:
+          default: "3. Amazon VPC Parameters spoke Back web"
+        Parameters:
+          - NumberOfAZsback
+          - AvailabilityZonesback
+          - VpcCidrback
+
+      - Label:
+          default: "3.1 Amazon Subnets Parameters spoke back web"
+        Parameters:
+          - PublichubSubnet0Cidrback
+          - PublichubSubnet1Cidrback
+          - PublichubSubnet2Cidrback
+          - ApphubSubnet0Cidrback
+          - ApphubSubnet1Cidrback
+          - ApphubSubnet2Cidrback
+
+      - Label:
+          default: "3.2 Etiquetas - Back Web"
+        Parameters:
+          - TagCustomerback
+          - TagEventback
+          - TagVerticalback
+          - TagTierback
+          - TagRegionback
+
+      - Label:
+          default: "3.3 Nombre de los Grupos de Seguridad Back Web"
+        Parameters:
+          - sgasgwebbw
+          - sgasgwebadmbw
+          - sgalbwebbckbw
+
+      - Label: 
+          default: "3.4 Datos implementacion ALB - Back Web"
+        Parameters:
+          - Albnamebw
+          - ListenerProtocolbw
+          - HttpListenerPortbw
+          - HttpsListenerPortbw
+          - SchemeTypebw
+          - HealthCheckPathbw
+          - TGNamebw
+          - ACMCertificatebw
+          - IngressAllowCidrbw
+
+      - Label: 
+          default: "3.5 Etiquetas ALB - Back Web"
+        Parameters:
+          - TagCustomerbw
+          - TagEventbw
+          - TagVerticalbw
+          - TagTierbw
+          - TagRegionbw
+
+      - Label:
+          default: "3.6 Parámetros del Launch Template ASG"
+        Parameters:
+          - LaunchTemplateNamebw
+          - InstanceRoleNamebw
+          - ImageIdbw
+          - InstanceTypebw
+          - KeyNamebw
+
+      - Label: 
+          default: "3.7 Parametros ambiente Autoescalado" 
+        Parameters:
+          - AutoScalingGroupNamebw
+          - MinSizebw
+          - MaxSizebw
+          - DesiredCapacitybw
+
+      # VPC Data web
+      - Label:
+          default: "4. Amazon VPC Parameters spoke Data web"
+        Parameters:
+          - NumberOfAZsdata
+          - AvailabilityZonesdata
+          - VpcCidrdata
+
+      - Label:
+          default: "4.1 Amazon Subnets Parameters spoke Data web"
+        Parameters:
+          - PublichubSubnet0Cidrdata
+          - PublichubSubnet1Cidrdata
+          - PublichubSubnet2Cidrdata
+          - ApphubSubnet0Cidrdata
+          - ApphubSubnet1Cidrdata
+          - ApphubSubnet2Cidrdata
+
+      - Label:
+          default: "4.2 Etiquetas - Spoke Data Web"
+        Parameters:
+          - TagCustomerdata
+          - TagEventdata
+          - TagVerticaldata
+          - TagTierdata
+          - TagRegiondata
+
+      # VPC Back App Movil
+      - Label:
+          default: "5. Amazon VPC Parameters spoke backend app movil"
+        Parameters:
+          - NumberOfAZsbackam
+          - AvailabilityZonesbackam
+          - VpcCidrbackam
+
+      - Label:
+          default: "5.1 Amazon Subnets Parameters spoke backend app movil"
+        Parameters:
+          - PublichubSubnet0Cidrbackam
+          - PublichubSubnet1Cidrbackam
+          - PublichubSubnet2Cidrbackam
+          - ApphubSubnet0Cidrbackam
+          - ApphubSubnet1Cidrbackam
+          - ApphubSubnet2Cidrbackam
+
+      - Label:
+          default: "5.2 Etiquetas - Spoke Back App Movil"
+        Parameters:
+          - TagCustomerbackam
+          - TagEventbackam
+          - TagVerticalbackam
+          - TagTierbackam
+          - TagRegionbackam
+
+      - Label:
+          default: "5.3 Nombre de los Grupos de Seguridad App Movil Back"
+        Parameters:
+          - sgasgappam
+          - sgasgappadmam
+          - sgalbappbckam
+
+      - Label: 
+          default: "5.4 Datos implementacion ALB - Back App Movil"
+        Parameters:
+          - Albnameapp
+          - ListenerProtocolapp
+          - HttpListenerPortapp
+          - HttpsListenerPortapp
+          - SchemeTypeapp
+          - HealthCheckPathapp
+          - TGNameapp
+          - ACMCertificateapp
+          - IngressAllowCidrapp
+
+      - Label: 
+          default: "5.5 Etiquetas ALB - Back App Movil"
+        Parameters:
+          - TagCustomerapp
+          - TagEventapp
+          - TagVerticalapp
+          - TagTierapp
+          - TagRegionapp
+
+      - Label:
+          default: "5.6 Parámetros del Launch Template ASG"
+        Parameters:
+          - LaunchTemplateNameapp
+          - InstanceRoleNameapp
+          - ImageIdapp
+          - InstanceTypeapp
+          - KeyNameapp
+
+      - Label: 
+          default: "5.7 Parametros ambiente Autoescalado" 
+        Parameters:
+          - AutoScalingGroupNameapp
+          - MinSizeapp
+          - MaxSizeapp
+          - DesiredCapacityapp
+
+      # VPC Back Analitica
+      - Label:
+          default: "6. Amazon VPC Parameters spoke backend analitica"
+        Parameters:
+          - NumberOfAZsbackanl
+          - AvailabilityZonesbackanl
+          - VpcCidrbackanl
+
+      - Label:
+          default: "6.1 Amazon Subnets Parameters spoke backend analitica"
+        Parameters:
+          - PublichubSubnet0Cidrbackanl
+          - PublichubSubnet1Cidrbackanl
+          - PublichubSubnet2Cidrbackanl
+          - ApphubSubnet0Cidrbackanl
+          - ApphubSubnet1Cidrbackanl
+          - ApphubSubnet2Cidrbackanl
+
+      - Label:
+          default: "6.2 Etiquetas - Spoke Back Analitica"
+        Parameters:
+          - TagCustomerbackanl
+          - TagEventbackanl
+          - TagVerticalbackanl
+          - TagTierbackanl
+          - TagRegionbackanl
+
+      - Label:
+          default: "6.3 Nombre de los Grupos de Seguridad Analitica Back"
+        Parameters:
+          - sgasganl
+          - sgasganladm
+          - sgalbanlbck
+
+      - Label: 
+          default: "6.4 Datos implementacion ALB - Back Analitica"
+        Parameters:
+          - Albnameanl
+          - ListenerProtocolanl
+          - HttpListenerPortanl
+          - HttpsListenerPortanl
+          - SchemeTypeanl
+          - HealthCheckPathanl
+          - TGNameanl
+          - ACMCertificateanl
+          - IngressAllowCidranl
+
+      - Label: 
+          default: "6.5 Etiquetas ALB - Back Analitica"
+        Parameters:
+          - TagCustomeranl
+          - TagEventanl
+          - TagVerticalanl
+          - TagTieranl
+          - TagRegionanl
+
+      - Label:
+          default: "6.6 Parámetros del Launch Template ASG Analitica"
+        Parameters:
+          - LaunchTemplateNameanl
+          - InstanceRoleNameanl
+          - ImageIdanl
+          - InstanceTypeanl
+          - KeyNameanl
+
+      - Label: 
+          default: "6.7 Parametros ambiente ASG Analitica" 
+        Parameters:
+          - AutoScalingGroupNameanl
+          - MinSizeanl
+          - MaxSizeanl
+          - DesiredCapacityanl
+
+      - Label: 
+          default: "7. Parametros de la plantilla" 
+        Parameters:
+          - TemplateURL
+          - Pathtemplate
+
+#############################################################################################
+# ParameterLabels
+#############################################################################################
+    ParameterLabels:
+      # Project
+      EnvironmentName:               {default: "Environment"}
+      # VPC Hub
+      AvailabilityZones:             {default: Availability Zones}
+      NumberOfAZs:                   {default: Number of Availability Zones}
+      VpcCidr:                       {default: VpcCidr}
+      PublichubSubnet0Cidr:          {default: Public Subnet 0}
+      PublichubSubnet1Cidr:          {default: Public Subnet 1}
+      PublichubSubnet2Cidr:          {default: Public Subnet 2}
+      ApphubSubnet0Cidr:             {default: App Subnet 0}
+      ApphubSubnet1Cidr:             {default: App Subnet 1}
+      ApphubSubnet2Cidr:             {default: App Subnet 2}
+      # Etiquetas HUB
+      TagCustomer: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEvent: {default: "Evento en el que se utilizara el recurso"}
+      TagVertical: {default: "Vertical a la que pertenecera el recurso"}
+      TagTier: {default: "Capa a la que pertenecera el recurso"}
+      TagRegion: {default: "Region en la que estara desplegado el recurso"}
+      # Transit Gateway
+      TransitGatewayNameTag:         { default: "Transit Gateway Name Tag" }
+      TransitGatewayAsn:             {default: "Transit Gateway ASN"}
+      AutoAcceptSharedAttachments:   {default: "Auto-Accept Shared Attachments"}
+      DefaultRouteTableAssociation:  {default: "Default Route Table Association"}
+      DefaultRouteTablePropagation:  {default: "Default Route Table Propagation"}
+      DnsSupportTGW:                 { default: "DNS Support en TGW" }
+      EnableFlowLogstgw:             { default: "Activar Flow Logs?" }
+      FlowLogGroupNametgw:           { default: "CloudWatch Log Group Name" }
+      AvailabilityZoneshub:          {default: "Availability Zones"}
+      NumberOfAZshub:                {default: "Number of Availability Zones"}
+      # VPC spoke front web
+      AvailabilityZonesfront:        {default: Availability Zones}
+      NumberOfAZsfront:              {default: Number of Availability Zones}
+      VpcCidrfront:                  {default: VpcCidr}
+      PublichubSubnet0Cidrfront:     {default: Public Subnet 0}
+      PublichubSubnet1Cidrfront:     {default: Public Subnet 1}
+      PublichubSubnet2Cidrfront:     {default: Public Subnet 2}
+      ApphubSubnet0Cidrfront:        {default: App Subnet 0}
+      ApphubSubnet1Cidrfront:        {default: App Subnet 1}
+      ApphubSubnet2Cidrfront:        {default: App Subnet 2}
+      # Etiquetas Spoke Front
+      TagCustomerfront: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEventfront: {default: "Evento en el que se utilizara el recurso"}
+      TagVerticalfront: {default: "Vertical a la que pertenecera el recurso"}
+      TagTierfront: {default: "Capa a la que pertenecera el recurso"}
+      TagRegionfront: {default: "Region en la que estara desplegado el recurso"}
+      # VPC spoke back web
+      AvailabilityZonesback:         {default: Availability Zones}
+      NumberOfAZsback:               {default: Number of Availability Zones}
+      VpcCidrback:                   {default: VpcCidr}
+      PublichubSubnet0Cidrback:      {default: Public Subnet 0}
+      PublichubSubnet1Cidrback:      {default: Public Subnet 1}
+      PublichubSubnet2Cidrback:      {default: Public Subnet 2}
+      ApphubSubnet0Cidrback:         {default: App Subnet 0}
+      ApphubSubnet1Cidrback:         {default: App Subnet 1}
+      ApphubSubnet2Cidrback:         {default: App Subnet 2}
+      # Etiquetas Spoke Back Web
+      TagCustomerback: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEventbackback: {default: "Evento en el que se utilizara el recurso"}
+      TagVerticalback: {default: "Vertical a la que pertenecera el recurso"}
+      TagTierback: {default: "Capa a la que pertenecera el recurso"}
+      TagRegionback: {default: "Region en la que estara desplegado el recurso"}
+      # VPC spoke data web
+      AvailabilityZonesdata:         {default: Availability Zones}
+      NumberOfAZsdata:               {default: Number of Availability Zones}
+      VpcCidrdata:                   {default: VpcCidr}
+      PublichubSubnet0Cidrdata:      {default: Public Subnet 0}
+      PublichubSubnet1Cidrdata:      {default: Public Subnet 1}
+      PublichubSubnet2Cidrdata:      {default: Public Subnet 2}
+      ApphubSubnet0Cidrdata:         {default: App Subnet 0}
+      ApphubSubnet1Cidrdata:         {default: App Subnet 1}
+      ApphubSubnet2Cidrdata:         {default: App Subnet 2}
+      # Etiquetas Spoke Back Web
+      TagCustomerdata: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEventbackdata: {default: "Evento en el que se utilizara el recurso"}
+      TagVerticaldata: {default: "Vertical a la que pertenecera el recurso"}
+      TagTierdata: {default: "Capa a la que pertenecera el recurso"}
+      TagRegiondata: {default: "Region en la que estara desplegado el recurso"}
+      # VPC spoke Backend app movil
+      AvailabilityZonesbackam:         {default: Availability Zones}
+      NumberOfAZsbackam:               {default: Number of Availability Zones}
+      VpcCidrbackam:                   {default: VpcCidr}
+      PublichubSubnet0Cidrbackam:      {default: Public Subnet 0}
+      PublichubSubnet1Cidrbackam:      {default: Public Subnet 1}
+      PublichubSubnet2Cidrbackam:      {default: Public Subnet 2}
+      ApphubSubnet0Cidrbackam:         {default: App Subnet 0}
+      ApphubSubnet1Cidrbackam:         {default: App Subnet 1}
+      ApphubSubnet2Cidrbackam:         {default: App Subnet 2}
+      # Etiquetas spoke Backend app movil
+      TagCustomerbackam: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEventbackam: {default: "Evento en el que se utilizara el recurso"}
+      TagVerticalbackam: {default: "Vertical a la que pertenecera el recurso"}
+      TagTierbackam: {default: "Capa a la que pertenecera el recurso"}
+      TagRegionbackam: {default: "Region en la que estara desplegado el recurso"}
+      # VPC spoke Backend analitica
+      AvailabilityZonesbackanl:         {default: Availability Zones}
+      NumberOfAZsbackanl:               {default: Number of Availability Zones}
+      VpcCidrbackanl:                   {default: VpcCidr}
+      PublichubSubnet0Cidrbackanl:      {default: Public Subnet 0}
+      PublichubSubnet1Cidrbackanl:      {default: Public Subnet 1}
+      PublichubSubnet2Cidrbackanl:      {default: Public Subnet 2}
+      ApphubSubnet0Cidrbackanl:         {default: App Subnet 0}
+      ApphubSubnet1Cidrbackanl:         {default: App Subnet 1}
+      ApphubSubnet2Cidrbackanl:         {default: App Subnet 2}
+      # Etiquetas Spoke Back Analitica
+      TagCustomerbackanl: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEventbackanl: {default: "Evento en el que se utilizara el recurso"}
+      TagVerticalbackanl: {default: "Vertical a la que pertenecera el recurso"}
+      TagTierbackanl: {default: "Capa a la que pertenecera el recurso"}
+      TagRegionbackanl: {default: "Region en la que estara desplegado el recurso"}
+      # Datos ALB Front Web
+      Albnamefrn:                     { default: "Nombre del ALB" }
+      ListenerProtocolfrn:            { default: "Protocolo del Listener (HTTP/HTTPS)" }
+      HttpListenerPortfrn:            { default: "Puerto HTTP" }
+      HttpsListenerPortfrn:           { default: "Puerto HTTPS" }
+      SchemeTypefrn:                  { default: "Scheme (internet-facing/internal)" }
+      HealthCheckPathfrn:             { default: "Path para Health Check" }
+      TGNamefrn:                      { default: "Nombre del Target Group" }
+      ACMCertificatefrn:              { default: "ARN del certificado ACM" }
+      IngressAllowCidrfrn:            { default: "CIDR permitido" }
+      # Etiquetas ALB Front Web
+      TagCustomerfrn:                 { default: "Cliente" }
+      TagEventfrn:                    { default: "Evento" }
+      TagVerticalfrn:                 { default: "Vertical" }
+      TagTierfrn:                     { default: "Tier" }
+      TagRegionfrn:                   { default: "Región" }
+      # Datos ALB Back Web
+      Albnamebw:                     { default: "Nombre del ALB" }
+      ListenerProtocolbw:            { default: "Protocolo del Listener (HTTP/HTTPS)" }
+      HttpListenerPortbw:            { default: "Puerto HTTP" }
+      HttpsListenerPortbw:           { default: "Puerto HTTPS" }
+      SchemeTypebw:                  { default: "Scheme (internet-facing/internal)" }
+      HealthCheckPathbw:             { default: "Path para Health Check" }
+      TGNamebw:                      { default: "Nombre del Target Group" }
+      ACMCertificatebw:              { default: "ARN del certificado ACM" }
+      IngressAllowCidrbw:            { default: "CIDR permitido" }
+      # Etiquetas ALB Back Web
+      TagCustomerbw:                 { default: "Cliente" }
+      TagEventbw:                    { default: "Evento" }
+      TagVerticalbw:                 { default: "Vertical" }
+      TagTierbw:                     { default: "Tier" }
+      TagRegionbw:                   { default: "Región" }
+      # Datos ASG Back Web
+      InstanceRoleNamebw:            { default: "Nombre del IAM Role para EC2" }
+      LaunchTemplateNamebw:          { default: "Nombre de la plantilla de lanzamiento" }
+      ImageIdbw:                     { default: "ID de la AMI EC2" }
+      InstanceTypebw:                { default: "Tipo de instancia EC2" }
+      KeyNamebw:                     { default: "Nombre del par SSH" }
+      AsgSecurityGroupIdbw:          { default: "ID del Security Group para el ASG" }
+      ManagementSecurityGroupIdbw:   { default: "ID del Security Group de gestión" }
+      AutoScalingGroupNamebw:        { default: "Nombre del Auto Scaling Group" }
+      MinSizebw:                     { default: "Número mínimo de instancias" }
+      MaxSizebw:                     { default: "Número máximo de instancias" }
+      DesiredCapacitybw:             { default: "Número deseado de instancias" }
+      # Datos ALB Back App Movil
+      Albnameapp:                     { default: "Nombre del ALB" }
+      ListenerProtocolapp:            { default: "Protocolo del Listener (HTTP/HTTPS)" }
+      HttpListenerPortapp:            { default: "Puerto HTTP" }
+      HttpsListenerPortapp:           { default: "Puerto HTTPS" }
+      SchemeTypeapp:                  { default: "Scheme (internet-facing/internal)" }
+      HealthCheckPathapp:             { default: "Path para Health Check" }
+      TGNameapp:                      { default: "Nombre del Target Group" }
+      ACMCertificateapp:              { default: "ARN del certificado ACM" }
+      IngressAllowCidrapp:            { default: "CIDR permitido" }
+      # Etiquetas ALB Back App Movil
+      TagCustomerapp:                 { default: "Cliente" }
+      TagEventapp:                    { default: "Evento" }
+      TagVerticalapp:                 { default: "Vertical" }
+      TagTierapp:                     { default: "Tier" }
+      TagRegionapp:                   { default: "Región" }
+      # Datos ASG Back App Movil
+      InstanceRoleNameapp:            { default: "Nombre del IAM Role para EC2" }
+      LaunchTemplateNameapp:          { default: "Nombre de la plantilla de lanzamiento" }
+      ImageIdapp:                     { default: "ID de la AMI EC2" }
+      InstanceTypeapp:                { default: "Tipo de instancia EC2" }
+      KeyNameapp:                     { default: "Nombre del par SSH" }
+      AsgSecurityGroupIdapp:          { default: "ID del Security Group para el ASG" }
+      ManagementSecurityGroupIdapp:   { default: "ID del Security Group de gestión" }
+      AutoScalingGroupNameapp:        { default: "Nombre del Auto Scaling Group" }
+      MinSizeapp:                     { default: "Número mínimo de instancias" }
+      MaxSizeapp:                     { default: "Número máximo de instancias" }
+      DesiredCapacityapp:             { default: "Número deseado de instancias" }
+      # Datos ALB Back Analitica
+      Albnameanl:                     { default: "Nombre del ALB" }
+      ListenerProtocolanl:            { default: "Protocolo del Listener (HTTP/HTTPS)" }
+      HttpListenerPortanl:            { default: "Puerto HTTP" }
+      HttpsListenerPortanl:           { default: "Puerto HTTPS" }
+      SchemeTypeanl:                  { default: "Scheme (internet-facing/internal)" }
+      HealthCheckPathanl:             { default: "Path para Health Check" }
+      TGNameanl:                      { default: "Nombre del Target Group" }
+      ACMCertificateanl:              { default: "ARN del certificado ACM" }
+      IngressAllowCidranl:            { default: "CIDR permitido" }
+      # Etiquetas ALB Back Analitica
+      TagCustomeranl:                 { default: "Cliente" }
+      TagEventanl:                    { default: "Evento" }
+      TagVerticalanl:                 { default: "Vertical" }
+      TagTieranl:                     { default: "Tier" }
+      TagRegionanl:                   { default: "Región" }
+      # Datos ASG Back Analitica
+      InstanceRoleNameanl:            { default: "Nombre del IAM Role para EC2" }
+      LaunchTemplateNameanl:          { default: "Nombre de la plantilla de lanzamiento" }
+      ImageIdanl:                     { default: "ID de la AMI EC2" }
+      InstanceTypeanl:                { default: "Tipo de instancia EC2" }
+      KeyNameanl:                     { default: "Nombre del par SSH" }
+      AsgSecurityGroupIdanl:          { default: "ID del Security Group para el ASG" }
+      ManagementSecurityGroupIdanl:   { default: "ID del Security Group de gestión" }
+      AutoScalingGroupNameanl:        { default: "Nombre del Auto Scaling Group" }
+      MinSizeanl:                     { default: "Número mínimo de instancias" }
+      MaxSizeanl:                     { default: "Número máximo de instancias" }
+      DesiredCapacityanl:             { default: "Número deseado de instancias" }
+      # Nombres SG Web Front
+      sgintweb:                       { default: "Nombre del sg para inteface S3 vpce" }
+      sgasgweb:                       { default: "Nombre del sg para asg web front" }
+      sgasgwebadm:                    { default: "Nombre del sg para asg web front admon" }
+      sgalbwebfrn:                    { default: "Nombre del sg para alb web front" }
+      # Nombres SG Web Back
+      sgasgwebbw:                     { default: "Nombre del sg para asg web back" }
+      sgasgwebadmbw:                  { default: "Nombre del sg para asg web back admon" }
+      sgalbwebbckbw:                  { default: "Nombre del sg para alb web back" }
+      # Nombres SG App Movil Back
+      sgasgappam:                     { default: "Nombre del sg para asg App Movil back Servicios" }
+      sgasgappadmam:                  { default: "Nombre del sg para asg App Movil back admon" }
+      sgalbappbckam:                  { default: "Nombre del sg para alb App Movil back" }
+      # Nombres SG Analitica Back
+      sgasganl:                       { default: "Nombre del sg para asg Analitica back Servicios" }
+      sgasganladm:                    { default: "Nombre del sg para asg Analitica back admon" }
+      sgalbanlbck:                    { default: "Nombre del sg para alb Analitica back" }
+      # Datos implementación Front Web
+      BucketNamefrn:                  { default: "Nombre del Bucket S3" }
+      InterfaceEndpointNamefrn:       { default: "Nombre del VPC Interface Endpoint"  }
+      GatewayEndpointNamfrn:          { default: "Nombre del VPC Gateway Endpoint"  }
+      EnableLifecyclefrn:             { default: "Habilitar reglas de ciclo de vida para optimización de costos"  }
+
+#############################################################################################
+# Parameter
+#############################################################################################
+Parameters:
+  # Project
+  EnvironmentName:
+    Type: String
+    Description: "A friendly environment name that will be used for namespacing all resources (valid options are dev, dr or production)"
+    AllowedValues: [dev, dr, prd]
+  # Network Hub
+  AvailabilityZones:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZs:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 3
+    Description:
+      Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.144.0/20
+    Description: CIDR block for the VPC
+    Type: String
+
+  PublichubSubnet0Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.144.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublichubSubnet1Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.145.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublichubSubnet2Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.146.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  ApphubSubnet0Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.147.0/24
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  ApphubSubnet1Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.148.0/24
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  ApphubSubnet2Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.149.0/24
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  # Etiquetas - Hub
+  TagCustomer:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEvent:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: "hub"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: "seg"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegion:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+  # Transit Gateway
+  TransitGatewayNameTag:
+    Type: String
+    Default: tgw-ceed-hub-dr-eus2
+    Description: "Texto a usar en la etiqueta Name del Transit Gateway"
+
+  TransitGatewayAsn:
+    Type: Number
+    Description: "Amazon-side ASN para BGP si aplica"
+    Default: 64512
+
+  AutoAcceptSharedAttachments:
+    Type: String
+    Description: "¿Auto-aceptar attachments compartidos? enable | disable"
+    AllowedValues: [ enable, disable ]
+    Default: disable
+
+  DefaultRouteTableAssociation:
+    Type: String
+    Description: "¿Asociar rutas por defecto? enable | disable"
+    AllowedValues: [ enable, disable ]
+    Default: disable
+
+  DefaultRouteTablePropagation:
+    Type: String
+    Description: "¿Propagar rutas por defecto? enable | disable"
+    AllowedValues: [ enable, disable ]
+    Default: disable
+
+  DnsSupportTGW:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: enable
+    Description: "Soporte DNS en el Transit Gateway?"
+
+  EnableFlowLogstgw:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: disable
+    Description: "¿Activar Flow Logs para el Transit Gateway?"
+
+  FlowLogGroupNametgw:
+    Type: String
+    Default: "/aws/transit-gateway/flow-logs"
+    Description: "Nombre del CloudWatch Log Group para los Flow Logs"
+
+  AvailabilityZoneshub:
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+    Description: "Lista de AZs para las subnets de la VPC Hub"
+
+  NumberOfAZshub:
+    Type: Number
+    Description: "Número de AZs a usar (debe coincidir con AvailabilityZones)"
+    AllowedValues: [ 1, 2, 3 ]
+    Default: 3
+
+  # Network Spoke front web
+  AvailabilityZonesfront:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZsfront:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 3
+    Description:
+      Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.0.0/20
+    Description: CIDR block for the VPC
+    Type: String
+
+  PublichubSubnet0Cidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.0.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublichubSubnet1Cidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.1.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublichubSubnet2Cidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.2.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  ApphubSubnet0Cidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.4.0/24
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  ApphubSubnet1Cidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.5.0/24
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  ApphubSubnet2Cidrfront:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.6.0/24
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  # Etiquetas - Spoke Front Web
+  TagCustomerfront:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEventfront:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVerticalfront:
+    Type: String
+    Default: "web"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTierfront:
+    Type: String
+    Default: "front"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegionfront:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+  # Nombres SG Spoke Web Front
+  sgintweb:
+    Type: String
+    Description: "Nombre del grupo de seguridad para en vpce interface Static Web Site"
+    Default: "vpce-sg-ceed-juv-web-front-dr-int-eus2"
+
+  sgasgweb:
+    Type: String
+    Description: "Nombre del grupo de seguridad para en vpce interface Static Web Site"
+    Default: "asg-sg-ceed-juv-web-front-dr-int-eus2"
+
+  sgasgwebadm:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web admon"
+    Default: "asg-sg-ceed-juv-web-front-dr-serv-eus2"
+  
+  sgalbwebfrn:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web admon"
+    Default: "asg-sg-ceed-juv-web-front-dr-alb-eus2"
+
+  # Network Spoke back web
+  AvailabilityZonesback:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZsback:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 3
+    Description:
+      Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.16.0/20
+    Description: CIDR block for the VPC
+    Type: String
+
+  PublichubSubnet0Cidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.16.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublichubSubnet1Cidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.17.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublichubSubnet2Cidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.18.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  ApphubSubnet0Cidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.20.0/24
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  ApphubSubnet1Cidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.21.0/24
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  ApphubSubnet2Cidrback:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.22.0/24
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  # Etiquetas - Spoke Back Web
+  TagCustomerback:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEventback:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVerticalback:
+    Type: String
+    Default: "web"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTierback:
+    Type: String
+    Default: "back"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegionback:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+  
+  # Nombres SG Spoke Web Back
+  sgasgwebbw:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web Servicios"
+    Default: "asg-sg-ceed-juv-web-back-dr-serv-eus2"
+
+  sgasgwebadmbw:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web admon"
+    Default: "asg-sg-ceed-juv-web-back-dr-adm-eus2"
+  
+  sgalbwebbckbw:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ALB web Backend"
+    Default: "alb-sg-ceed-juv-web-back-dr-eus2"
+
+  # Datos configuración ASG Back Web
+  InstanceRoleNamebw:
+    Type: String
+    Description: "Nombre del IAM Role que asumirán las instancias EC2"
+    Default: "ssm-cloudwatch"
+
+  LaunchTemplateNamebw:
+    Type: String
+    Description: "Nombre de la plantilla de lanzamiento Back Web"
+    Default: "lt-ceed-juv-web-dr-back"
+  ImageIdbw:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-054c1e87a3e431931"
+    Description: "AMI EC2 para las instancias"
+  InstanceTypebw:
+    Type: String
+    Default: "t3.micro"
+    Description: "Tipo de instancia EC2"
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - c6i.large
+      - c6i.xlarge
+      - c6i.2xlarge
+      - c6i.4xlarge
+      - c6i.8xlarge
+      - c6in.large
+      - c6in.xlarge
+      - c6in.2xlarge
+      - c6in.4xlarge
+      - c6in.8xlarge
+      - c6in.12xlarge
+      - r6i.large
+      - r6i.xlarge
+      - r6i.2xlarge
+      - r6i.4xlarge
+    ConstraintDescription: "Elija un tipo de instancia válido."
+  KeyNamebw:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Par de claves SSH para EC2"
+
+  AutoScalingGroupNamebw:
+    Type: String
+    Description: "Nombre del Auto Scaling Group Back Web"
+    Default: "asg-ceed-juv-web-dr-back"
+  MinSizebw:
+    Type: Number
+    Description: "Número mínimo de instancias EC2"
+    Default: 1
+  MaxSizebw:
+    Type: Number
+    Description: "Número máximo de instancias EC2"
+    Default: 1
+  DesiredCapacitybw:
+    Type: Number
+    Description: "Número deseado de instancias EC2 al inicio"
+    Default: 1
+
+  # Network Spoke data web
+  AvailabilityZonesdata:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZsdata:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 3
+    Description:
+      Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.32.0/20
+    Description: CIDR block for the VPC
+    Type: String
+
+  PublichubSubnet0Cidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.32.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublichubSubnet1Cidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.33.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublichubSubnet2Cidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.34.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  ApphubSubnet0Cidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.36.0/24
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  ApphubSubnet1Cidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.37.0/24
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  ApphubSubnet2Cidrdata:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.38.0/24
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  # Etiquetas - Spoke Data Web
+  TagCustomerdata:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEventdata:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVerticaldata:
+    Type: String
+    Default: "web"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTierdata:
+    Type: String
+    Default: "data"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegiondata:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+  # Network Spoke Backend app movil
+  AvailabilityZonesbackam:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZsbackam:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 3
+    Description:
+     Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.48.0/20
+    Description: CIDR block for the VPC
+    Type: String
+
+  PublichubSubnet0Cidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.48.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublichubSubnet1Cidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.49.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublichubSubnet2Cidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.50.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  ApphubSubnet0Cidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.52.0/24
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  ApphubSubnet1Cidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.53.0/24
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  ApphubSubnet2Cidrbackam:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.54.0/24
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  # Datos configuración ASG Back App Movil
+  InstanceRoleNameapp:
+    Type: String
+    Description: "Nombre del IAM Role que asumirán las instancias EC2"
+    Default: "ssm-cloudwatch"
+
+  LaunchTemplateNameapp:
+    Type: String
+    Description: "Nombre de la plantilla de lanzamiento - Back App Movil"
+    Default: "lt-ceed-juv-movil-dr-back"
+  ImageIdapp:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-054c1e87a3e431931"
+    Description: "AMI EC2 para las instancias"
+  InstanceTypeapp:
+    Type: String
+    Default: "t3.micro"
+    Description: "Tipo de instancia EC2"
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - c6i.large
+      - c6i.xlarge
+      - c6i.2xlarge
+      - c6i.4xlarge
+      - c6i.8xlarge
+      - c6in.large
+      - c6in.xlarge
+      - c6in.2xlarge
+      - c6in.4xlarge
+      - c6in.8xlarge
+      - c6in.12xlarge
+      - r6i.large
+      - r6i.xlarge
+      - r6i.2xlarge
+      - r6i.4xlarge
+    ConstraintDescription: "Elija un tipo de instancia válido."
+  KeyNameapp:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Par de claves SSH para EC2"
+
+  AutoScalingGroupNameapp:
+    Type: String
+    Description: "Nombre del Auto Scaling Group"
+    Default: "asg-ceed-juv-movil-dr-back"
+  MinSizeapp:
+    Type: Number
+    Description: "Número mínimo de instancias EC2"
+    Default: 1
+  MaxSizeapp:
+    Type: Number
+    Description: "Número máximo de instancias EC2"
+    Default: 1
+  DesiredCapacityapp:
+    Type: Number
+    Description: "Número deseado de instancias EC2 al inicio"
+    Default: 1
+
+  # Etiquetas - Spoke Back App Movil
+  TagCustomerbackam:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEventbackam:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVerticalbackam:
+    Type: String
+    Default: "movil"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTierbackam:
+    Type: String
+    Default: "back"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegionbackam:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+  # Nombres SG Spoke Back App Movil
+  sgasgappam:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web Servicios"
+    Default: "asg-sg-ceed-juv-movil-dr-back-serv-eus2"
+
+  sgasgappadmam:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web admon"
+    Default: "asg-sg-ceed-juv-movil-dr-back-adm-eus2"
+  
+  sgalbappbckam:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ALB web Backend"
+    Default: "alb-sg-ceed-juv-movil-dr-back-eus2"
+
+  # Network Spoke Backend Analitica
+  AvailabilityZonesbackanl:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZsbackanl:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 3
+    Description:
+     Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.80.0/20
+    Description: CIDR block for the VPC
+    Type: String
+
+  PublichubSubnet0Cidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.80.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublichubSubnet1Cidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.81.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublichubSubnet2Cidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.82.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  ApphubSubnet0Cidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.84.0/24
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  ApphubSubnet1Cidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.85.0/24
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  ApphubSubnet2Cidrbackanl:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.129.86.0/24
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  # Etiquetas - Spoke Backend Analitica
+  TagCustomerbackanl:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEventbackanl:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVerticalbackanl:
+    Type: String
+    Default: "anl"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTierbackanl:
+    Type: String
+    Default: "back"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegionbackanl:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+  # Nombres SG Spoke Analitica
+  sgasganl:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG analitica Servicios"
+    Default: "asg-sg-ceed-juv-anl-back-dr-serv-eus2"
+
+  sgasganladm:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG analitica admon"
+    Default: "asg-sg-ceed-juv-anl-back-dr-adm-eus2"
+  
+  sgalbanlbck:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ALB analitica Backend"
+    Default: "alb-sg-ceed-juv-anl-back-dr-eus2"
+
+  # Datos configuración ASG Back Analitica
+  InstanceRoleNameanl:
+    Type: String
+    Description: "Nombre del IAM Role que asumirán las instancias EC2"
+    Default: "ssm-cloudwatch"
+
+  LaunchTemplateNameanl:
+    Type: String
+    Description: "Nombre de la plantilla de lanzamiento"
+    Default: "lt-ceed-juv-anl-dr-back"
+  ImageIdanl:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-054c1e87a3e431931"
+    Description: "AMI EC2 para las instancias"
+  InstanceTypeanl:
+    Type: String
+    Default: "t3.micro"
+    Description: "Tipo de instancia EC2"
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - c6i.large
+      - c6i.xlarge
+      - c6i.2xlarge
+      - c6i.4xlarge
+      - c6i.8xlarge
+      - c6in.large
+      - c6in.xlarge
+      - c6in.2xlarge
+      - c6in.4xlarge
+      - c6in.8xlarge
+      - c6in.12xlarge
+      - r6i.large
+      - r6i.xlarge
+      - r6i.2xlarge
+      - r6i.4xlarge
+    ConstraintDescription: "Elija un tipo de instancia válido."
+  KeyNameanl:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Par de claves SSH para EC2"
+
+  AutoScalingGroupNameanl:
+    Type: String
+    Description: "Nombre del Auto Scaling Group"
+    Default: "asg-ceed-juv-anl-dr-back"
+  MinSizeanl:
+    Type: Number
+    Description: "Número mínimo de instancias EC2"
+    Default: 1
+  MaxSizeanl:
+    Type: Number
+    Description: "Número máximo de instancias EC2"
+    Default: 1
+  DesiredCapacityanl:
+    Type: Number
+    Description: "Número deseado de instancias EC2 al inicio"
+    Default: 1
+
+  # Datos ALB - Front Web
+  Albnamefrn:
+    Type: String
+    Default: "alb-ceed-web-front-dr-eus2"
+    Description: "Nombre del ALB"
+
+  ListenerProtocolfrn:
+    Type: String
+    AllowedValues: [HTTP, HTTPS]
+    Default: HTTP
+    Description: "Protocolo para listener"
+
+  HttpListenerPortfrn:
+    Type: Number
+    Default: 80
+    Description: "Puerto para listener HTTP"
+
+  HttpsListenerPortfrn:
+    Type: Number
+    Default: 443
+    Description: "Puerto para listener HTTPS"
+
+  SchemeTypefrn:
+    Type: String
+    AllowedValues: [internet-facing, internal]
+    Default: internal
+    Description: "Scheme del ALB"
+
+  HealthCheckPathfrn:
+    Type: String
+    Default: /
+    Description: "Ruta para health checks"
+
+  TGNamefrn:
+    Type: String
+    Default: "tg-ceed-web-front-dr-eus2"
+    Description: "Nombre del TG"
+
+  ACMCertificatefrn:
+    Type: String
+    Default: "arn:aws:acm:us-east-2:752651630425:certificate/142420fb-f6f2-4205-aa6c-a1b5e90009af"
+    Description: "ARN del certificado ACM (requerido solo para HTTPS)"
+
+  IngressAllowCidrfrn:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: "CIDR permitido para ingreso"
+
+  TagCustomerfrn:
+    Type: String
+    Default: ceed
+  TagEventfrn:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVerticalfrn:
+    Type: String
+    Default: web
+    AllowedValues: [web, movil, anl, pm]
+  TagTierfrn:
+    Type: String
+    Default: front
+    AllowedValues: [front, back, data]
+  TagRegionfrn:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+  
+  # Datos ALB - Backend Web
+  Albnamebw:
+    Type: String
+    Default: "alb-ceed-web-back-dr-eus2"
+    Description: "Nombre del ALB"
+
+  ListenerProtocolbw:
+    Type: String
+    AllowedValues: [HTTP, HTTPS]
+    Default: HTTP
+    Description: "Protocolo para listener"
+
+  HttpListenerPortbw:
+    Type: Number
+    Default: 80
+    Description: "Puerto para listener HTTP"
+
+  HttpsListenerPortbw:
+    Type: Number
+    Default: 443
+    Description: "Puerto para listener HTTPS"
+
+  SchemeTypebw:
+    Type: String
+    AllowedValues: [internet-facing, internal]
+    Default: internal
+    Description: "Scheme del ALB"
+
+  HealthCheckPathbw:
+    Type: String
+    Default: /
+    Description: "Ruta para health checks"
+
+  TGNamebw:
+    Type: String
+    Default: "tg-ceed-web-back-dr-eus2"
+    Description: "Nombre del TG"
+
+  ACMCertificatebw:
+    Type: String
+    Default: "arn:aws:acm:us-east-2:752651630425:certificate/142420fb-f6f2-4205-aa6c-a1b5e90009af"
+    Description: "ARN del certificado ACM (requerido solo para HTTPS)"
+
+  IngressAllowCidrbw:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: "CIDR permitido para ingreso"
+
+  TagCustomerbw:
+    Type: String
+    Default: ceed
+  TagEventbw:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVerticalbw:
+    Type: String
+    Default: web
+    AllowedValues: [web, movil, anl, pm]
+  TagTierbw:
+    Type: String
+    Default: back
+    AllowedValues: [front, back, data]
+  TagRegionbw:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+  # Datos ALB - Backend App
+  Albnameapp:
+    Type: String
+    Default: "alb-ceed-juv-movil-back-dr-eus2"
+    Description: "Nombre del ALB"
+
+  ListenerProtocolapp:
+    Type: String
+    AllowedValues: [HTTP, HTTPS]
+    Default: HTTP
+    Description: "Protocolo para listener"
+
+  HttpListenerPortapp:
+    Type: Number
+    Default: 80
+    Description: "Puerto para listener HTTP"
+
+  HttpsListenerPortapp:
+    Type: Number
+    Default: 443
+    Description: "Puerto para listener HTTPS"
+
+  SchemeTypeapp:
+    Type: String
+    AllowedValues: [internet-facing, internal]
+    Default: internal
+    Description: "Scheme del ALB"
+
+  HealthCheckPathapp:
+    Type: String
+    Default: /
+    Description: "Ruta para health checks"
+
+  TGNameapp:
+    Type: String
+    Default: "tg-ceed-juv-movil-back-dr-eus2"
+    Description: "Nombre del TG"
+
+  ACMCertificateapp:
+    Type: String
+    Default: "arn:aws:acm:us-east-2:752651630425:certificate/142420fb-f6f2-4205-aa6c-a1b5e90009af"
+    Description: "ARN del certificado ACM (requerido solo para HTTPS)"
+
+  IngressAllowCidrapp:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: "CIDR permitido para ingreso"
+
+  TagCustomerapp:
+    Type: String
+    Default: ceed
+  TagEventapp:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVerticalapp:
+    Type: String
+    Default: movil
+    AllowedValues: [web, movil, anl, pm]
+  TagTierapp:
+    Type: String
+    Default: back
+    AllowedValues: [front, back, data]
+  TagRegionapp:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+  # Datos ALB - Backend Analitica
+  Albnameanl:
+    Type: String
+    Default: "alb-ceed-juv-anl-back-dr-eus2"
+    Description: "Nombre del ALB"
+
+  ListenerProtocolanl:
+    Type: String
+    AllowedValues: [HTTP, HTTPS]
+    Default: HTTP
+    Description: "Protocolo para listener"
+
+  HttpListenerPortanl:
+    Type: Number
+    Default: 80
+    Description: "Puerto para listener HTTP"
+
+  HttpsListenerPortanl:
+    Type: Number
+    Default: 443
+    Description: "Puerto para listener HTTPS"
+
+  SchemeTypeanl:
+    Type: String
+    AllowedValues: [internet-facing, internal]
+    Default: internal
+    Description: "Scheme del ALB"
+
+  HealthCheckPathanl:
+    Type: String
+    Default: /
+    Description: "Ruta para health checks"
+
+  TGNameanl:
+    Type: String
+    Default: "tg-ceed-juv-anl-back-dr-eus2"
+    Description: "Nombre del TG"
+
+  ACMCertificateanl:
+    Type: String
+    Default: "arn:aws:acm:us-east-2:752651630425:certificate/142420fb-f6f2-4205-aa6c-a1b5e90009af"
+    Description: "ARN del certificado ACM (requerido solo para HTTPS)"
+
+  IngressAllowCidranl:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: "CIDR permitido para ingreso"
+
+  TagCustomeranl:
+    Type: String
+    Default: ceed
+  TagEventanl:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVerticalanl:
+    Type: String
+    Default: anl
+    AllowedValues: [web, movil, anl, pm]
+  TagTieranl:
+    Type: String
+    Default: back
+    AllowedValues: [front, back, data]
+  TagRegionanl:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+  # Datos Bucket S3 Static Web
+  BucketNamefrn:
+    Type: String
+    Default: "s3-bucket-ceed-juv-dr-static-site"
+    Description: "Nombre único del bucket S3."
+  InterfaceEndpointNamefrn:
+    Type: String
+    Default: "s3-interface-endpoint-ceed-juv-dr-static-site"
+    Description: "Nombre del VPC Interface Endpoint."
+  GatewayEndpointNamefrn:
+    Type: String
+    Default: "s3-gateway-endpoint-ceed-juv-dr-static-site"
+    Description: "Nombre del VPC Gateway Endpoint."
+  EnableLifecyclefrn:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: "Indica si se habilitan reglas de ciclo de vida para optimización de costos."
+
+#############################################################################################
+# Path Templates
+#############################################################################################
+  TemplateURL:
+    Description: "S3 cloudformation templates path"
+    Type: String
+    Default: https://jhonnyobucket.s3.us-east-1.amazonaws.com
+
+  Pathtemplate:
+    Description: "S3 cloudformation path template environment"
+    Type: String
+    Default: "IaC"
+
+#############################################################################################
+# Resources
+#############################################################################################
+Resources:
+# Create the network layer hub (VPC)
+  prdvpchubceed:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/01_hub_vpc.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZones"]
+        NumberOfAZs: !Ref NumberOfAZs
+        VpcCidr: !Ref VpcCidr
+        PublicSubnet0Cidr: !Ref PublichubSubnet0Cidr
+        PublicSubnet1Cidr: !Ref PublichubSubnet1Cidr
+        PublicSubnet2Cidr: !Ref PublichubSubnet2Cidr
+        AppSubnet0Cidr: !Ref ApphubSubnet0Cidr
+        AppSubnet1Cidr: !Ref ApphubSubnet1Cidr
+        AppSubnet2Cidr: !Ref ApphubSubnet2Cidr
+        TagCustomer: !Ref TagCustomer
+        TagEvent: !Ref TagEvent
+        TagVertical: !Ref TagVertical
+        TagTier: !Ref TagTier
+        TagRegion: !Ref TagRegion
+
+# Create the network layer front web (VPC)
+  prdvpcspkfrnceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdvpchubceed 
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/01_spk_vpc_front.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZonesfront"]
+        NumberOfAZs: !Ref NumberOfAZsfront
+        VpcCidr: !Ref VpcCidrfront
+        PublicSubnet0Cidr: !Ref PublichubSubnet0Cidrfront
+        PublicSubnet1Cidr: !Ref PublichubSubnet1Cidrfront
+        PublicSubnet2Cidr: !Ref PublichubSubnet2Cidrfront
+        AppSubnet0Cidr: !Ref ApphubSubnet0Cidrfront
+        AppSubnet1Cidr: !Ref ApphubSubnet1Cidrfront
+        AppSubnet2Cidr: !Ref ApphubSubnet2Cidrfront
+        TagCustomer: !Ref TagCustomerfront
+        TagEvent: !Ref TagEventfront
+        TagVertical: !Ref TagVerticalfront
+        TagTier: !Ref TagTierfront
+        TagRegion: !Ref TagRegionfront
+
+# Create the network layer Back web (VPC)
+  prdvpcspkbckceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdvpcspkfrnceed 
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/01_spk_vpc_back.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZonesback"]
+        NumberOfAZs: !Ref NumberOfAZsback
+        VpcCidr: !Ref VpcCidrback
+        PublicSubnet0Cidr: !Ref PublichubSubnet0Cidrback
+        PublicSubnet1Cidr: !Ref PublichubSubnet1Cidrback
+        PublicSubnet2Cidr: !Ref PublichubSubnet2Cidrback
+        AppSubnet0Cidr: !Ref ApphubSubnet0Cidrback
+        AppSubnet1Cidr: !Ref ApphubSubnet1Cidrback
+        AppSubnet2Cidr: !Ref ApphubSubnet2Cidrback
+        TagCustomer: !Ref TagCustomerback
+        TagEvent: !Ref TagEventback
+        TagVertical: !Ref TagVerticalback
+        TagTier: !Ref TagTierback
+        TagRegion: !Ref TagRegionback
+
+# Create the network layer Data web (VPC)
+  prdvpcspkdataceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdvpcspkbckceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/01_spk_vpc_data.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZonesdata"]
+        NumberOfAZs: !Ref NumberOfAZsdata
+        VpcCidr: !Ref VpcCidrdata
+        PublicSubnet0Cidr: !Ref PublichubSubnet0Cidrdata
+        PublicSubnet1Cidr: !Ref PublichubSubnet1Cidrdata
+        PublicSubnet2Cidr: !Ref PublichubSubnet2Cidrdata
+        AppSubnet0Cidr: !Ref ApphubSubnet0Cidrdata
+        AppSubnet1Cidr: !Ref ApphubSubnet1Cidrdata
+        AppSubnet2Cidr: !Ref ApphubSubnet2Cidrdata
+        TagCustomer: !Ref TagCustomerdata
+        TagEvent: !Ref TagEventdata
+        TagVertical: !Ref TagVerticaldata
+        TagTier: !Ref TagTierdata
+        TagRegion: !Ref TagRegiondata
+
+# Create the network layer Back App Movil (VPC)
+  prdvpcspkbckamceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdvpcspkdataceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/01_spk_vpc_back_app.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZonesbackam"]
+        NumberOfAZs: !Ref NumberOfAZsbackam
+        VpcCidr: !Ref VpcCidrbackam
+        PublicSubnet0Cidr: !Ref PublichubSubnet0Cidrbackam
+        PublicSubnet1Cidr: !Ref PublichubSubnet1Cidrbackam
+        PublicSubnet2Cidr: !Ref PublichubSubnet2Cidrbackam
+        AppSubnet0Cidr: !Ref ApphubSubnet0Cidrbackam
+        AppSubnet1Cidr: !Ref ApphubSubnet1Cidrbackam
+        AppSubnet2Cidr: !Ref ApphubSubnet2Cidrbackam
+        TagCustomer: !Ref TagCustomerbackam
+        TagEvent: !Ref TagEventbackam
+        TagVertical: !Ref TagVerticalbackam
+        TagTier: !Ref TagTierbackam
+        TagRegion: !Ref TagRegionbackam
+
+# Create the network layer Back Analitica (VPC)
+  prdvpcspkbckanlceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdvpcspkbckamceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/01_spk_vpc_back_analitica.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZonesbackanl"]
+        NumberOfAZs: !Ref NumberOfAZsbackanl
+        VpcCidr: !Ref VpcCidrbackanl
+        PublicSubnet0Cidr: !Ref PublichubSubnet0Cidrbackanl
+        PublicSubnet1Cidr: !Ref PublichubSubnet1Cidrbackanl
+        PublicSubnet2Cidr: !Ref PublichubSubnet2Cidrbackanl
+        AppSubnet0Cidr: !Ref ApphubSubnet0Cidrbackanl
+        AppSubnet1Cidr: !Ref ApphubSubnet1Cidrbackanl
+        AppSubnet2Cidr: !Ref ApphubSubnet2Cidrbackanl
+        TagCustomer: !Ref TagCustomerbackanl
+        TagEvent: !Ref TagEventbackanl
+        TagVertical: !Ref TagVerticalbackanl
+        TagTier: !Ref TagTierbackanl
+        TagRegion: !Ref TagRegionbackanl
+
+# Transit Gateway Hub
+  prdtgwhubceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdvpcspkbckanlceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/07_tgw_hub.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        TransitGatewayNameTag: !Ref TransitGatewayNameTag
+        TransitGatewayAsn: !Ref TransitGatewayAsn
+        AutoAcceptSharedAttachments: !Ref AutoAcceptSharedAttachments
+        DefaultRouteTableAssociation: !Ref DefaultRouteTableAssociation
+        DefaultRouteTablePropagation: !Ref DefaultRouteTablePropagation
+        DnsSupportTGW: !Ref DnsSupportTGW
+        EnableFlowLogs: !Ref EnableFlowLogstgw
+        FlowLogGroupName: !Ref FlowLogGroupNametgw
+        AvailabilityZones: !Join [',', !Ref "AvailabilityZoneshub"]
+        NumberOfAZs: !Ref NumberOfAZshub
+#        HubVpcId: !GetAtt prdvpchubceed.Outputs.VpcId
+#        HubSubnet0Id: !GetAtt prdvpchubceed.Outputs.PublicSubnet0Id
+#        HubSubnet1Id: !GetAtt prdvpchubceed.Outputs.PublicSubnet1Id
+#        HubSubnet2Id: !GetAtt prdvpchubceed.Outputs.PublicSubnet2Id
+
+# Transit Gateway Hub (Route Table)
+  prdtgwrthubceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdtgwhubceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/07_tgw_rt.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        HubVpcId: !GetAtt prdvpchubceed.Outputs.VpcId
+        HubSubnetIds: !GetAtt prdvpchubceed.Outputs.PublicSubnetIds
+        SpokeFrontVpcId: !GetAtt prdvpcspkfrnceed.Outputs.VpcIdfront
+        SpokeFrontAlbSubnetIds: !GetAtt prdvpcspkfrnceed.Outputs.PublicSubnetIdsfront
+        SpokeBE1VpcId: !GetAtt prdvpcspkbckceed.Outputs.VpcIdback
+        SpokeBE1AlbSubnetIds: !GetAtt prdvpcspkbckceed.Outputs.PublicSubnetIdsback
+        SpokeBE2VpcId: !GetAtt prdvpcspkbckamceed.Outputs.VpcIdbackam
+        SpokeBE2AlbSubnetIds: !GetAtt prdvpcspkbckamceed.Outputs.PublicSubnetIdsbackam
+        SpokeBE3VpcId: !GetAtt prdvpcspkbckanlceed.Outputs.VpcIdbackanl
+        SpokeBE3AlbSubnetIds: !GetAtt prdvpcspkbckanlceed.Outputs.PublicSubnetIdsbackanl
+        SpokeDataVpcId: !GetAtt prdvpcspkdataceed.Outputs.VpcIddata
+        SpokeDataClusterSubnetIds: !GetAtt prdvpcspkdataceed.Outputs.PublicSubnetIdsdata
+
+# Create the network layer Hub (Route Table)
+  prdrthubceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdtgwrthubceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/04_hub_rt.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpchubceed.Outputs.VpcId
+        PublicSubnetIds: !GetAtt prdvpchubceed.Outputs.PublicSubnetIds
+        AppSubnetIds: !GetAtt prdvpchubceed.Outputs.AppSubnetIds
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        TagCustomer: !Ref TagCustomer
+        TagEvent: !Ref TagEvent
+        TagVertical: !Ref TagVertical
+        TagTier: !Ref TagTier
+        TagRegion: !Ref TagRegion
+
+# Create the network layer Front Web (Route Table)
+  prdrtspkfrnceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrthubceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/04_spk_rt_front.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkfrnceed.Outputs.VpcIdfront
+        PublicSubnetIds: !GetAtt prdvpcspkfrnceed.Outputs.PublicSubnetIdsfront
+        AppSubnetIds: !GetAtt prdvpcspkfrnceed.Outputs.AppSubnetIdsfront
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        TagCustomer: !Ref TagCustomerfront
+        TagEvent: !Ref TagEventfront
+        TagVertical: !Ref TagVerticalfront
+        TagTier: !Ref TagTierfront
+        TagRegion: !Ref TagRegionfront
+
+# Create the network layer Back Web (Route Table)
+  prdrtspkbckceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkfrnceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/04_spk_rt_back.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckceed.Outputs.VpcIdback
+        PublicSubnetIds: !GetAtt prdvpcspkbckceed.Outputs.PublicSubnetIdsback
+        AppSubnetIds: !GetAtt prdvpcspkbckceed.Outputs.AppSubnetIdsback
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        TagCustomer: !Ref TagCustomerback
+        TagEvent: !Ref TagEventback
+        TagVertical: !Ref TagVerticalback
+        TagTier: !Ref TagTierback
+        TagRegion: !Ref TagRegionback
+
+# Create the network layer Data Web (Route Table)
+  prdrtspkdataceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkbckceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/04_spk_rt_data.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkdataceed.Outputs.VpcIddata
+        PublicSubnetIds: !GetAtt prdvpcspkdataceed.Outputs.PublicSubnetIdsdata
+        AppSubnetIds: !GetAtt prdvpcspkdataceed.Outputs.AppSubnetIdsdata
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        TagCustomer: !Ref TagCustomerdata
+        TagEvent: !Ref TagEventdata
+        TagVertical: !Ref TagVerticaldata
+        TagTier: !Ref TagTierdata
+        TagRegion: !Ref TagRegiondata
+
+# Create the network layer Back App Movil (Route Table)
+  prdrtspkbckamceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkdataceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/04_spk_rt_back_app.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckamceed.Outputs.VpcIdbackam
+        PublicSubnetIds: !GetAtt prdvpcspkbckamceed.Outputs.PublicSubnetIdsbackam
+        AppSubnetIds: !GetAtt prdvpcspkbckamceed.Outputs.AppSubnetIdsbackam
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        TagCustomer: !Ref TagCustomerbackam
+        TagEvent: !Ref TagEventbackam
+        TagVertical: !Ref TagVerticalbackam
+        TagTier: !Ref TagTierbackam
+        TagRegion: !Ref TagRegionbackam
+
+# Create the network layer Back Analitica (Route Table)
+  prdrtspkbckanlceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkbckamceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/04_spk_rt_back_analitica.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckanlceed.Outputs.VpcIdbackanl
+        PublicSubnetIds: !GetAtt prdvpcspkbckanlceed.Outputs.PublicSubnetIdsbackanl
+        AppSubnetIds: !GetAtt prdvpcspkbckanlceed.Outputs.AppSubnetIdsbackanl
+        TransitGatewayId: !GetAtt prdtgwhubceed.Outputs.TransitGatewayId
+        TagCustomer: !Ref TagCustomerbackanl
+        TagEvent: !Ref TagEventbackanl
+        TagVertical: !Ref TagVerticalbackanl
+        TagTier: !Ref TagTierbackanl
+        TagRegion: !Ref TagRegionbackanl
+
+# Create the network layer Front Web (Security Groups)
+  prdsgspkwebfrnceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkfrnceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/11_ceed_dr_sg_web.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkfrnceed.Outputs.VpcIdfront
+        sgintweb: !Ref sgintweb
+        sgasgweb: !Ref sgasgweb
+        sgasgwebadm: !Ref sgasgwebadm
+        sgalbwebfrn: !Ref sgalbwebfrn
+        TagCustomer: !Ref TagCustomerfrn
+        TagEvent: !Ref TagEventfrn
+        TagVertical: !Ref TagVerticalfrn
+        TagTier: !Ref TagTierfrn
+        TagRegion: !Ref TagRegionfrn
+
+
+# Create the ALB FrontEnd Web (Application Load Balancer)
+  prdalbfrnwebceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdsgspkwebfrnceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/03_ceed_dr_alb_web_front.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkfrnceed.Outputs.VpcIdfront
+        SubnetIds: !GetAtt prdvpcspkfrnceed.Outputs.PublicSubnetIdsfront
+        SecurityGroupId: !GetAtt prdsgspkwebfrnceed.Outputs.AlbSecurityGroupaId
+        Albname: !Ref Albnamefrn
+        TGName: !Ref TGNamefrn
+        ListenerProtocol: !Ref ListenerProtocolfrn
+        HttpListenerPort: !Ref HttpListenerPortfrn
+        HttpsListenerPort: !Ref HttpsListenerPortfrn
+        SchemeType: !Ref SchemeTypefrn
+        HealthCheckPath: !Ref HealthCheckPathfrn
+        ACMCertificate: !Ref ACMCertificatefrn
+        IngressAllowCidr: !Ref IngressAllowCidrfrn
+        TagCustomer: !Ref TagCustomerfrn
+        TagEvent: !Ref TagEventfrn
+        TagVertical: !Ref TagVerticalfrn
+        TagTier: !Ref TagTierfrn
+        TagRegion: !Ref TagRegionfrn
+
+# Create the network layer Backend Web (Security Groups)
+  prdsgspkwebbckceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkbckceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/11_ceed_dr_sg_bck_web.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckceed.Outputs.VpcIdback
+        sgasgweb: !Ref sgasgwebbw
+        sgasgwebadm: !Ref sgasgwebadmbw
+        sgalbwebbck: !Ref sgalbwebbckbw
+        TagCustomer: !Ref TagCustomerbw
+        TagEvent: !Ref TagEventbw
+        TagVertical: !Ref TagVerticalbw
+        TagTier: !Ref TagTierbw
+        TagRegion: !Ref TagRegionbw
+
+# Create the ALB Backend Web (Application Load Balancer)
+  prdalbbckwebceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdsgspkwebbckceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/03_ceed_dr_alb_web_bck.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckceed.Outputs.VpcIdback
+        SubnetIds: !GetAtt prdvpcspkbckceed.Outputs.PublicSubnetIdsback
+        SecurityGroupId: !GetAtt prdsgspkwebbckceed.Outputs.AlbSecurityGroupaIdwebbck
+        Albname: !Ref Albnamebw
+        TGName: !Ref TGNamebw
+        ListenerProtocol: !Ref ListenerProtocolbw
+        HttpListenerPort: !Ref HttpListenerPortbw
+        HttpsListenerPort: !Ref HttpsListenerPortbw
+        SchemeType: !Ref SchemeTypebw
+        HealthCheckPath: !Ref HealthCheckPathbw
+        ACMCertificate: !Ref ACMCertificatebw
+        IngressAllowCidr: !Ref IngressAllowCidrbw
+        TagCustomer: !Ref TagCustomerbw
+        TagEvent: !Ref TagEventbw
+        TagVertical: !Ref TagVerticalbw
+        TagTier: !Ref TagTierbw
+        TagRegion: !Ref TagRegionbw
+
+# Create the ASG Backend Web (Auto Scaling Group)
+  prdasgbckwebceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdalbbckwebceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/02_ceed_dr_asg_bck_web.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckceed.Outputs.VpcIdback
+        SubnetIds: !GetAtt prdvpcspkbckceed.Outputs.AppSubnetIdsback
+        LaunchTemplateName: !Ref LaunchTemplateNamebw
+        InstanceRoleName: !Ref InstanceRoleNamebw
+        AutoScalingGroupName: !Ref AutoScalingGroupNamebw
+        ImageId: !Ref ImageIdbw
+        InstanceType: !Ref InstanceTypebw
+        KeyName: !Ref KeyNamebw
+        AsgSecurityGroupId: !GetAtt prdsgspkwebbckceed.Outputs.AsgSecurityGroupservIdwebbck
+        ManagementSecurityGroupId: !GetAtt prdsgspkwebbckceed.Outputs.AsgSecurityGroupadmonIdwebbck
+        MinSize: !Ref MinSizebw
+        MaxSize: !Ref MaxSizebw
+        DesiredCapacity: !Ref DesiredCapacitybw
+        TargetGroupArn: !GetAtt prdalbbckwebceed.Outputs.TargetGroupArnbckweb
+        TagCustomer: !Ref TagCustomerbw
+        TagEvent: !Ref TagEventbw
+        TagVertical: !Ref TagVerticalbw
+        TagTier: !Ref TagTierbw
+        TagRegion: !Ref TagRegionbw
+
+# Create the network layer Backend App Movil (Security Groups)
+  prdsgspkappbckceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: 
+      - prdrtspkbckamceed
+      - prdvpcspkbckamceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/11_ceed_dr_sg_bck_app.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckamceed.Outputs.VpcIdbackam
+        sgasgapp: !Ref sgasgappam
+        sgasgappadm: !Ref sgasgappadmam
+        sgalbappbck: !Ref sgalbappbckam
+        TagCustomer: !Ref TagCustomerapp
+        TagEvent: !Ref TagEventapp
+        TagVertical: !Ref TagVerticalapp
+        TagTier: !Ref TagTierapp
+        TagRegion: !Ref TagRegionapp
+
+# Create the ALB Backend App Movil (Application Load Balancer)
+  prdalbbckappceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: 
+      - prdsgspkappbckceed
+      - prdrtspkbckamceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/03_ceed_dr_alb_app_bck.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckamceed.Outputs.VpcIdbackam
+        SubnetIds: !GetAtt prdvpcspkbckamceed.Outputs.PublicSubnetIdsbackam
+        SecurityGroupId: !GetAtt prdsgspkappbckceed.Outputs.AlbSecurityGroupIdappbck
+        Albname: !Ref Albnameapp
+        TGName: !Ref TGNameapp
+        ListenerProtocol: !Ref ListenerProtocolapp
+        HttpListenerPort: !Ref HttpListenerPortapp
+        HttpsListenerPort: !Ref HttpsListenerPortapp
+        SchemeType: !Ref SchemeTypeapp
+        HealthCheckPath: !Ref HealthCheckPathapp
+        ACMCertificate: !Ref ACMCertificateapp
+        IngressAllowCidr: !Ref IngressAllowCidrapp
+        TagCustomer: !Ref TagCustomerapp
+        TagEvent: !Ref TagEventapp
+        TagVertical: !Ref TagVerticalapp
+        TagTier: !Ref TagTierapp
+        TagRegion: !Ref TagRegionapp
+
+# Create the ASG Backend App Movil (Auto Scaling Group)
+  prdasgbckappceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdsgspkappbckceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/02_ceed_dr_asg_bck_app.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckamceed.Outputs.VpcIdbackam
+        SubnetIds: !GetAtt prdvpcspkbckamceed.Outputs.AppSubnetIdsbackam
+        LaunchTemplateName: !Ref LaunchTemplateNameapp
+        InstanceRoleName: !Ref InstanceRoleNameapp
+        AutoScalingGroupName: !Ref AutoScalingGroupNameapp
+        ImageId: !Ref ImageIdapp
+        InstanceType: !Ref InstanceTypeapp
+        KeyName: !Ref KeyNameapp
+        AsgSecurityGroupId: !GetAtt prdsgspkappbckceed.Outputs.AsgSecurityGroupIdappbck
+        ManagementSecurityGroupId: !GetAtt prdsgspkappbckceed.Outputs.AsgadmSecurityGroupIdappbck
+        MinSize: !Ref MinSizeapp
+        MaxSize: !Ref MaxSizeapp
+        DesiredCapacity: !Ref DesiredCapacityapp
+        TargetGroupArn: !GetAtt prdalbbckappceed.Outputs.TargetGroupArnbckappbck
+        TagCustomer: !Ref TagCustomerapp
+        TagEvent: !Ref TagEventapp
+        TagVertical: !Ref TagVerticalapp
+        TagTier: !Ref TagTierapp
+        TagRegion: !Ref TagRegionapp
+
+# Create the network layer Backend Analitica (Security Groups)
+  prdsgspkanlbckceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdrtspkbckanlceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/11_ceed_dr_sg_bck_anl.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckanlceed.Outputs.VpcIdbackanl
+        sgasganl: !Ref sgasganl
+        sgasganladm: !Ref sgasganladm
+        sgalbanlbck: !Ref sgalbanlbck
+        TagCustomer: !Ref TagCustomeranl
+        TagEvent: !Ref TagEventanl
+        TagVertical: !Ref TagVerticalanl
+        TagTier: !Ref TagTieranl
+        TagRegion: !Ref TagRegionanl
+
+# Create the ALB Backend Analitica (Application Load Balancer)
+  prdalbbckanlceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdsgspkanlbckceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/03_ceed_dr_alb_anl_bck.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckanlceed.Outputs.VpcIdbackanl
+        SubnetIds: !GetAtt prdvpcspkbckanlceed.Outputs.PublicSubnetIdsbackanl
+        SecurityGroupId: !GetAtt prdsgspkanlbckceed.Outputs.AlbSecurityGroupIdanl
+        Albname: !Ref Albnameanl
+        TGName: !Ref TGNameanl
+        ListenerProtocol: !Ref ListenerProtocolanl
+        HttpListenerPort: !Ref HttpListenerPortanl
+        HttpsListenerPort: !Ref HttpsListenerPortanl
+        SchemeType: !Ref SchemeTypeanl
+        HealthCheckPath: !Ref HealthCheckPathanl
+        ACMCertificate: !Ref ACMCertificateanl
+        IngressAllowCidr: !Ref IngressAllowCidranl
+        TagCustomer: !Ref TagCustomeranl
+        TagEvent: !Ref TagEventanl
+        TagVertical: !Ref TagVerticalanl
+        TagTier: !Ref TagTieranl
+        TagRegion: !Ref TagRegionanl
+
+# Create the ASG Backend Analitica (Auto Scaling Group)
+  prdasgbckanlceed:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: prdalbbckanlceed
+    Properties:
+      TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/02_ceed_dr_asg_bck_anl.yml'
+      Parameters:
+        EnvironmentName: !Ref EnvironmentName
+        VpcId: !GetAtt prdvpcspkbckanlceed.Outputs.VpcIdbackanl
+        SubnetIds: !GetAtt prdvpcspkbckanlceed.Outputs.AppSubnetIdsbackanl
+        LaunchTemplateName: !Ref LaunchTemplateNameanl
+        InstanceRoleName: !Ref InstanceRoleNameanl
+        AutoScalingGroupName: !Ref AutoScalingGroupNameanl
+        ImageId: !Ref ImageIdanl
+        InstanceType: !Ref InstanceTypeanl
+        KeyName: !Ref KeyNameanl
+        AsgSecurityGroupId: !GetAtt prdsgspkanlbckceed.Outputs.AsgSecurityGroupIdservanl
+        ManagementSecurityGroupId: !GetAtt prdsgspkanlbckceed.Outputs.AsgSecurityGroupIdadmanl
+        MinSize: !Ref MinSizeanl
+        MaxSize: !Ref MaxSizeanl
+        DesiredCapacity: !Ref DesiredCapacityanl
+        TargetGroupArn: !GetAtt prdalbbckanlceed.Outputs.TargetGroupArnbckanl
+        TagCustomer: !Ref TagCustomeranl
+        TagEvent: !Ref TagEventanl
+        TagVertical: !Ref TagVerticalanl
+        TagTier: !Ref TagTieranl
+        TagRegion: !Ref TagRegionanl
+
+# Create the network layer VPCe and S3 Bucket Static Web (VPC + S3)
+  # prds3frnwebceed:
+  #   Type: AWS::CloudFormation::Stack
+  #   DependsOn: prdsgspkwebfrnceed
+  #   Properties:
+  #     TemplateURL: !Sub '${TemplateURL}/${Pathtemplate}/juventudes/10_ceed_dr_s3_web.yml'
+  #     Parameters:
+  #       EnvironmentName: !Ref EnvironmentName
+  #       VpcId: !GetAtt prdvpcspkfrnceed.Outputs.VpcIdfront
+  #       SubnetIds: !GetAtt prdvpcspkfrnceed.Outputs.AppSubnetIdsfront
+  #       SecurityGroupIds: !GetAtt prdsgspkwebfrnceed.Outputs.WebSecurityGroupId
+  #       RouteTableIds: !GetAtt prdrtspkfrnceed.Outputs.PrivateAppRouteTableIdfront
+  #       BucketName: !Ref BucketNamefrn
+  #       InterfaceEndpointName: !Ref InterfaceEndpointNamefrn
+  #       GatewayEndpointName: !Ref GatewayEndpointNamefrn
+  #       EnableLifecycle: !Ref EnableLifecyclefrn
+  #       TagCustomer: !Ref TagCustomerfrn
+  #       TagEvent: !Ref TagEventfrn
+  #       TagVertical: !Ref TagVerticalfrn
+  #       TagTier: !Ref TagTierfrn
+  #       TagRegion: !Ref TagRegionfrn
