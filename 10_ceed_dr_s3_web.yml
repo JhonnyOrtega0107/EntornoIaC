@@ -1,0 +1,276 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Plantilla CloudFormation para un bucket S3 privado accesible solo vía AWS PrivateLink Interface Endpoint
+  y un Gateway Endpoint (requerido para Private DNS). Aplica buenas prácticas de AWS Well-Architected Framework
+  en los seis pilares excepto la optimización de costos que es opcional.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:  { default: "Project Configuration" }
+        Parameters:
+          - EnvironmentName
+      - Label:  {default: "Naming S3, PrivateLink"}
+        Parameters: 
+          - BucketName
+          - InterfaceEndpointName
+          - GatewayEndpointName
+      - Label:  {default: "Networking"}
+        Parameters:
+          - VpcId
+          - SubnetIds
+          - SecurityGroupIds
+          - RouteTableIds
+      - Label:  {default: "Optional: Lifecycle"}
+        Parameters:
+          - EnableLifecycle
+      - Label:  {default: "Etiquetas S3 - Front Web"}
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName:        { default: "Environment Name" }
+      BucketName:             { default: "Nombre del Bucket S3" }
+      InterfaceEndpointName:  { default: "Nombre del VPC Interface Endpoint"  }
+      GatewayEndpointName:    { default: "Nombre del VPC Gateway Endpoint"  }
+      VpcId:                  { default: "ID del VPC existente" }
+      SubnetIds:              { default: "IDs de Subredes para Interface Endpoint"  }
+      SecurityGroupIds:       { default: "IDs de Security Groups para Interface Endpoint" }
+      RouteTableIds:          { default: "IDs de tablas de ruta (rtb-...) para Gateway Endpoint"  }
+      EnableLifecycle:        { default: "Habilitar reglas de ciclo de vida para optimización de costos"  }
+      TagCustomer:            { default: "Cliente" }
+      TagEvent:               { default: "Evento" }
+      TagVertical:            { default: "Vertical" }
+      TagTier:                { default: "Tier" }
+      TagRegion:              { default: "Región" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "Friendly identifier for tagging resources"
+    Default: dev
+    AllowedValues: [dev, dr, prd]
+  BucketName:
+    Type: String
+    Default: "static-site-bucket"
+    Description: "Nombre único del bucket S3."
+  InterfaceEndpointName:
+    Type: String
+    Default: "s3-interface-endpoint"
+    Description: "Nombre del VPC Interface Endpoint."
+  GatewayEndpointName:
+    Type: String
+    Default: "s3-gateway-endpoint"
+    Description: "Nombre del VPC Gateway Endpoint."
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "ID del VPC donde se crearán los Endpoints."
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: "Subnets para el Interface Endpoint."
+  SecurityGroupIds:
+    Type: List<AWS::EC2::SecurityGroup::Id>
+    Description: "SGs para el Interface Endpoint."
+  RouteTableIds:
+    Type: List<String>
+    Description: "Tablas de ruta (rtb-...) para asociar al Gateway Endpoint."
+  EnableLifecycle:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "false"
+    Description: "Indica si se habilitan reglas de ciclo de vida para optimización de costos."
+
+  TagCustomer:
+    Type: String
+    Default: ceed
+  TagEvent:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: web
+    AllowedValues: [web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: front
+    AllowedValues: [front, back, data]
+  TagRegion:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+Conditions:
+  CreateLifecycle: !Equals [ !Ref EnableLifecycle, "true" ]
+
+Resources:
+  # S3 Bucket con buenas prácticas
+  S3BucketInternalSite:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      # Seguridad: cifrado en reposo con SSE-S3
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      # Operational Excellence & Fiabilidad: versionado activado
+      VersioningConfiguration:
+        Status: Enabled
+      # Lifecycle opcional para optimización de costos y sostenibilidad
+      LifecycleConfiguration: !If
+        - CreateLifecycle
+        - Rules:
+            - Id: TransitionToStandardIA
+              Status: Enabled
+              Prefix: ""
+              Transitions:
+                - StorageClass: STANDARD_IA
+                  TransitionInDays: 30
+            - Id: TransitionToGlacier
+              Status: Enabled
+              Prefix: ""
+              Transitions:
+                - StorageClass: GLACIER
+                  TransitionInDays: 90
+        - !Ref AWS::NoValue
+      # Operational Excellence: bloqueo de acceso público
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      Tags:
+        - Key: Name
+          Value: !Ref BucketName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  # Política de acceso mínimo (Security)
+  S3BucketInternalSitePolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3BucketInternalSite
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowOnlyVpcInterfaceEndpoint
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - "s3:GetObject"
+              - "s3:ListBucket"
+            Resource:
+              - !GetAtt S3BucketInternalSite.Arn
+              - !Sub "${S3BucketInternalSite.Arn}/*"
+            Condition:
+              StringEquals:
+                "aws:SourceVpce": !Ref S3InterfaceEndpoint
+
+  # Gateway Endpoint para DNS privado (Reliability)
+  S3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      RouteTableIds: !Ref RouteTableIds
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowGatewayAccessToBucket
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !Sub "arn:aws:s3:::${BucketName}"
+              - !Sub "arn:aws:s3:::${BucketName}/*"
+      Tags:
+        - Key: Name
+          Value: !Ref GatewayEndpointName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  # Interface Endpoint con Private DNS y monitoreo (Performance Efficiency & Security)
+  S3InterfaceEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref VpcId
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds: !Ref SecurityGroupIds
+      PrivateDnsEnabled: true
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowInterfaceAccessToBucket
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "arn:aws:s3:::${BucketName}/*"
+      Tags:
+        - Key: Name
+          Value: !Ref InterfaceEndpointName
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+Outputs:
+  BucketName:
+    Description: "Nombre del bucket S3 creado"
+    Value: !Ref S3BucketInternalSite
+
+  BucketArn:
+    Description: "ARN del bucket S3 creado"
+    Value: !GetAtt S3BucketInternalSite.Arn
+
+  GatewayEndpointId:
+    Description: "ID del VPC Gateway Endpoint de S3"
+    Value: !Ref S3GatewayEndpoint
+
+  InterfaceEndpointId:
+    Description: "ID del VPC Interface Endpoint de S3"
+    Value: !Ref S3InterfaceEndpoint

@@ -1,0 +1,269 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  ALB para ASG con:
+    - Creación automática de Security Group ajustable
+    - Listener HTTP configurable (puerto personalizable)
+    - Opcional listener HTTPS con redirect (puerto personalizable)
+    - Certificado insertado manualmente
+    - Scheme configurable (internet-facing o internal)
+    - Health checks y deregistration delay optimizados
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: "Project Configuration" }
+        Parameters:
+          - EnvironmentName
+      - Label: { default: "Network Data ALB" }
+        Parameters:
+          - VpcId
+          - SubnetIds
+      - Label: { default: "Datos ALB" }
+        Parameters:
+          - Albname
+          - ListenerProtocol
+          - HttpListenerPort
+          - HttpsListenerPort
+          - SchemeType
+          - HealthCheckPath
+          - TGName
+          - ACMCertificate
+      - Label: { default: "Security Group Configuration" }
+        Parameters:
+          - SecurityGroupId
+          - IngressAllowCidr
+      - Label: { default: "Etiquetas" }
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName:    { default: "Environment Name" }
+      VpcId:              { default: "Ingrese VPC ID" }
+      SubnetIds:          { default: "IDs de Subnets para ALB" }
+      Albname:            { default: "Nombre del ALB" }
+      ListenerProtocol:   { default: "Protocolo del Listener (HTTP/HTTPS)" }
+      HttpListenerPort:   { default: "Puerto HTTP" }
+      HttpsListenerPort:  { default: "Puerto HTTPS" }
+      SchemeType:         { default: "Scheme (internet-facing/internal)" }
+      HealthCheckPath:    { default: "Path para Health Check" }
+      TGName:             { default: "Nombre del Target Group" }
+      ACMCertificate:     { default: "ARN del certificado ACM" }
+      SecurityGroupId:    { default: "ID SG" }
+      IngressAllowCidr:   { default: "CIDR permitido" }
+      TagCustomer:        { default: "Cliente" }
+      TagEvent:           { default: "Evento" }
+      TagVertical:        { default: "Vertical" }
+      TagTier:            { default: "Tier" }
+      TagRegion:          { default: "Región" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "Friendly identifier for tagging resources"
+    Default: dev
+    AllowedValues: [dev, test, prd, dr]
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "ID de la VPC donde se desplega el ALB"
+
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: "Lista de subnets para el ALB"
+
+  Albname:
+    Type: String
+    Default: "alb-ceed-juv-web-frn-dr-eus2"
+    Description: "Nombre del ALB"
+
+  ListenerProtocol:
+    Type: String
+    AllowedValues: [HTTP, HTTPS]
+    Default: HTTP
+    Description:  >
+      HTTP: solo listener en puerto HTTP.
+      HTTPS: listener HTTP redirige a HTTPS y se crea listener HTTPS.
+
+  HttpListenerPort:
+    Type: Number
+    Default: 80
+    Description: "Puerto para listener HTTP"
+
+  HttpsListenerPort:
+    Type: Number
+    Default: 443
+    Description: "Puerto para listener HTTPS"
+
+  SchemeType:
+    Type: String
+    AllowedValues: [internet-facing, internal]
+    Default: internet-facing
+    Description: "Scheme del ALB"
+
+  HealthCheckPath:
+    Type: String
+    Default: /
+    Description: "Ruta para health checks"
+
+  TGName:
+    Type: String
+    Default: "tg-ceed-juv-web-frn-dr-eus2-001"
+    Description: "Nombre del TG"
+
+  ACMCertificate:
+    Type: String
+    Default: ""
+    Description: "ARN del certificado ACM (requerido solo para HTTPS)"
+
+  SecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: "ID del Security Group para el ALB (p.ej. sg-0abc1234)"
+
+  IngressAllowCidr:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: "CIDR permitido para ingreso"
+
+  TagCustomer:
+    Type: String
+    Default: ceed
+  TagEvent:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: web
+    AllowedValues: [web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: front
+    AllowedValues: [front, back, data]
+  TagRegion:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+Conditions:
+  UseHTTPS: !Equals [!Ref ListenerProtocol, HTTPS]
+  HasACMCertificate: !Not [!Equals [!Ref ACMCertificate, ""]]
+  CreateHTTPSListener: !And [!Condition UseHTTPS, !Condition HasACMCertificate]
+#  HasSGName: !Not [!Equals [!Ref SecurityGroupName, ""]]
+
+Resources:
+#  ALBSecurityGroup:
+#    Type: AWS::EC2::SecurityGroup
+#    Properties:
+#      GroupDescription: !Sub "SG para ALB ${Albname}"
+#      VpcId: !Ref VpcId
+#      GroupName: !If [HasSGName, !Ref SecurityGroupName, !Ref AWS::NoValue]
+#      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: !Ref HttpListenerPort
+#          ToPort: !Ref HttpListenerPort
+#          CidrIp: !Ref IngressAllowCidr
+#        - Condition: UseHTTPS
+#          IpProtocol: tcp
+#          FromPort: !Ref HttpsListenerPort
+#          ToPort: !Ref HttpsListenerPort
+#          CidrIp: !Ref IngressAllowCidr
+#      SecurityGroupEgress:
+#        - IpProtocol: -1
+#          FromPort: 0
+#          ToPort: 0
+#          CidrIp: 0.0.0.0/0
+#      Tags:
+#        - Key: Name
+#          Value: !Ref SecurityGroupName
+#        - Key: Environment
+#          Value: !Ref EnvironmentName
+
+  ALB:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref Albname
+      Scheme: !Ref SchemeType
+      Type: application
+      IpAddressType: ipv4
+      Subnets: !Ref SubnetIds
+      SecurityGroups:
+        - !Ref SecurityGroupId
+      LoadBalancerAttributes:
+        - Key: idle_timeout.timeout_seconds
+          Value: "60"
+      Tags:
+        - Key: Name
+          Value: !Ref Albname
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Ref TGName
+      VpcId: !Ref VpcId
+      Protocol: HTTP
+      Port: !Ref HttpListenerPort
+      TargetType: instance
+      HealthCheckProtocol: HTTP
+      HealthCheckPath: !Ref HealthCheckPath
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      UnhealthyThresholdCount: 2
+      Matcher:
+        HttpCode: '200'
+      TargetGroupAttributes:
+        - Key: deregistration_delay.timeout_seconds
+          Value: "30"
+      Tags:
+        - Key: Name
+          Value: !Ref TGName
+
+  HTTPListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: !Ref HttpListenerPort
+      Protocol: HTTP
+      DefaultActions: !If
+        - UseHTTPS
+        - - Type: redirect
+            RedirectConfig:
+              Protocol: HTTPS
+              Port: !Ref HttpsListenerPort
+              StatusCode: HTTP_301
+        - - Type: forward
+            TargetGroupArn: !Ref TargetGroup
+
+  HTTPSListener:
+    Condition: CreateHTTPSListener
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref ALB
+      Port: !Ref HttpsListenerPort
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: !Ref ACMCertificate
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+Outputs:
+  ALBDNSNamefrontweb:
+    Description: "DNS del ALB"
+    Value: !GetAtt ALB.DNSName
+
+#  ALBSecurityGroupIdfrontweb:
+#    Description: "ID del Security Group del ALB"
+#    Value: !Ref ALBSecurityGroup
+
+  TargetGroupArnfrontweb:
+    Description: "ARN del Target Group"
+    Value: !Ref TargetGroup

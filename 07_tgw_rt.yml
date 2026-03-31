@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Crear Transit Gateway Attachments para Spokes y tablas de ruteo TGW
+  (asume existencia previa de TGW y Attachment Hub).
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+      - Label:
+          default: "Transit Gateway Settings"
+        Parameters:
+          - TransitGatewayId
+      - Label:
+          default: "Hub Seguridad"
+        Parameters:
+          - HubVpcId
+          - HubSubnetIds
+      - Label:
+          default: "Spoke-Front (Web)"
+        Parameters:
+          - SpokeFrontVpcId
+          - SpokeFrontAlbSubnetIds
+      - Label:
+          default: "Spoke-BE1 (Backend Web)"
+        Parameters:
+          - SpokeBE1VpcId
+          - SpokeBE1AlbSubnetIds
+      - Label:
+          default: "Spoke-BE2 (Backend Móvil)"
+        Parameters:
+          - SpokeBE2VpcId
+          - SpokeBE2AlbSubnetIds
+      - Label:
+          default: "Spoke-BE3 (Analítica)"
+        Parameters:
+          - SpokeBE3VpcId
+          - SpokeBE3AlbSubnetIds
+      - Label:
+          default: "Spoke-Data (Datos)"
+        Parameters:
+          - SpokeDataVpcId
+          - SpokeDataClusterSubnetIds
+
+    ParameterLabels:
+      EnvironmentName:        { default: "Entorno (dev|dr|prd)" }
+      TransitGatewayId:       { default: "ID del Transit Gateway" }
+      HubVpcId:               { default: "VPC ID Hub Seguridad" }
+      HubSubnetIds:           { default: "Subnet IDs (3) Hub"}
+      SpokeFrontVpcId:        { default: "VPC ID Spoke-Front" }
+      SpokeFrontAlbSubnetIds: { default: "Subnet IDs ALB (3) Spoke-Front" }
+      SpokeBE1VpcId:          { default: "VPC ID Spoke-BE1" }
+      SpokeBE1AlbSubnetIds:   { default: "Subnet IDs ALB (3) Spoke-BE1" }
+      SpokeBE2VpcId:          { default: "VPC ID Spoke-BE2" }
+      SpokeBE2AlbSubnetIds:   { default: "Subnet IDs ALB (3) Spoke-BE2" }
+      SpokeBE3VpcId:          { default: "VPC ID Spoke-BE3" }
+      SpokeBE3AlbSubnetIds:   { default: "Subnet IDs ALB (3) Spoke-BE3" }
+      SpokeDataVpcId:         { default: "VPC ID Spoke-Data" }
+      SpokeDataClusterSubnetIds: { default: "Subnet IDs Cluster (3) Spoke-Data" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    AllowedValues: [dev, dr, prd]
+    Default: dev
+    Description: Entorno de despliegue
+
+  TransitGatewayId:
+    Type: String
+    Description: ID del Transit Gateway existente (tgw-...)
+    AllowedPattern: '^tgw-[0-9a-f]{8,17}$'
+    ConstraintDescription: "Debe iniciar con 'tgw-'"
+
+#  HubAttachmentId:
+#    Type: String
+#    Description: ID del Attachment del Hub (tgw-attach-...)
+#    AllowedPattern: '^tgw-attach-[0-9a-f]{8,17}$'
+#    ConstraintDescription: "Debe iniciar con 'tgw-attach-'"
+
+  # Solo capa Hub para attachments
+  HubVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID del Hub
+  HubSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 3 Subnet IDs Hub seguridad (una por AZ)
+
+  # Solo capa ALB/Cluster para attachments
+  SpokeFrontVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID del Spoke-Front
+  SpokeFrontAlbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 3 Subnet IDs ALB en Spoke-Front (una por AZ)
+
+  SpokeBE1VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID del Spoke-BE1
+  SpokeBE1AlbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 3 Subnet IDs ALB en Spoke-BE1
+
+  SpokeBE2VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID del Spoke-BE2
+  SpokeBE2AlbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 3 Subnet IDs ALB en Spoke-BE2
+
+  SpokeBE3VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID del Spoke-BE3
+  SpokeBE3AlbSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 3 Subnet IDs ALB en Spoke-BE3
+
+  SpokeDataVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC ID del Spoke-Data
+  SpokeDataClusterSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: 3 Subnet IDs Cluster/cache en Spoke-Data
+
+Resources:
+  # 1. TGW Attachments
+  TGWAttachHub:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref HubVpcId
+      SubnetIds: !Ref HubSubnetIds
+      Options:
+        ApplianceModeSupport: enable
+        DnsSupport: enable
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dr-hub-eus2
+
+  TGWAttachSpokeFront:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref SpokeFrontVpcId
+      SubnetIds: !Ref SpokeFrontAlbSubnetIds
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dr-web-frn-eus2
+
+  TGWAttachSpokeBE1:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref SpokeBE1VpcId
+      SubnetIds: !Ref SpokeBE1AlbSubnetIds
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dr-web-bck-eus2
+
+  TGWAttachSpokeBE2:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref SpokeBE2VpcId
+      SubnetIds: !Ref SpokeBE2AlbSubnetIds
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dr-app-bck-eus2
+
+  TGWAttachSpokeBE3:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref SpokeBE3VpcId
+      SubnetIds: !Ref SpokeBE3AlbSubnetIds
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dr-anl-bck-eus2
+
+  TGWAttachSpokeData:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      VpcId: !Ref SpokeDataVpcId
+      SubnetIds: !Ref SpokeDataClusterSubnetIds
+      Tags:
+        - Key: Name
+          Value: tgw-attach-dr-web-data-eus2
+
+  # 2. TGW Route Tables
+  TGWRouteTableSpokes:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      Tags:
+        - Key: Name
+          Value: tgw-rt-attach-dr-spk-eus2
+  TGWRouteTableHub:
+    Type: AWS::EC2::TransitGatewayRouteTable
+    Properties:
+      TransitGatewayId: !Ref TransitGatewayId
+      Tags:
+        - Key: Name
+          Value: tgw-rt-attach-dr-hub-eus2
+
+  # 3. Associations & Propagations
+  # Spokes → SpokesRT
+  AssocFront: { Type: AWS::EC2::TransitGatewayRouteTableAssociation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeFront, TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  PropFront:  { Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeFront, TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  AssocBE1:  { Type: AWS::EC2::TransitGatewayRouteTableAssociation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE1,  TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  PropBE1:   { Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE1,  TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  AssocBE2:  { Type: AWS::EC2::TransitGatewayRouteTableAssociation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE2,  TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  PropBE2:   { Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE2,  TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  AssocBE3:  { Type: AWS::EC2::TransitGatewayRouteTableAssociation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE3,  TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  PropBE3:   { Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE3,  TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  AssocData: { Type: AWS::EC2::TransitGatewayRouteTableAssociation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeData, TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+  PropData:  { Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeData, TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes}}
+
+  # Hub → HubRT
+  AssocHub: { Type: AWS::EC2::TransitGatewayRouteTableAssociation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachHub, TransitGatewayRouteTableId: !Ref TGWRouteTableHub}}
+  PropHubFront: {Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeFront, TransitGatewayRouteTableId: !Ref TGWRouteTableHub}}
+  PropHubBE1:   {Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE1,   TransitGatewayRouteTableId: !Ref TGWRouteTableHub}}
+  PropHubBE2:   {Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE2,   TransitGatewayRouteTableId: !Ref TGWRouteTableHub}}
+  PropHubBE3:   {Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeBE3,   TransitGatewayRouteTableId: !Ref TGWRouteTableHub}}
+  PropHubData: {Type: AWS::EC2::TransitGatewayRouteTablePropagation, Properties: {TransitGatewayAttachmentId: !Ref TGWAttachSpokeData, TransitGatewayRouteTableId: !Ref TGWRouteTableHub}}
+
+  # 4. Default route: SpokesRT → Hub
+  DefaultRoute:
+    Type: AWS::EC2::TransitGatewayRoute
+    Properties:
+      TransitGatewayRouteTableId: !Ref TGWRouteTableSpokes
+      DestinationCidrBlock: "0.0.0.0/0"
+      TransitGatewayAttachmentId: !Ref TGWAttachHub
+
+Outputs:
+  TGWSpokesRouteTableId:
+    Description: ID tabla rutas TGW Spokes
+    Value: !Ref TGWRouteTableSpokes
+  TGWHubRouteTableId:
+    Description: ID tabla rutas TGW Hub
+    Value: !Ref TGWRouteTableHub

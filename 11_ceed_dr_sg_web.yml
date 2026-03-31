@@ -1,0 +1,244 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Network Stack: VPC + Security Groups centrales para aplicaciones en AWS.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: 
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+      - Label:
+          default: "Configuración de Red"
+        Parameters:
+          - VpcId
+      - Label:
+          default: "Nombre de los Grupos de Seguridad"
+        Parameters:
+          - sgintweb
+          - sgasgweb
+          - sgasgwebadm
+          - sgalbwebfrn
+      - Label:  
+            default: "Etiquetas SG - Front Web"
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName:  { default: "Entorno (dev | stest | prod | dr)" }
+      VpcId:            { default: "ID de la VPC" }
+      sgintweb:         { default: "Nombre del sg para inteface S3 vpce" }
+      sgasgweb:         { default: "Nombre del sg para asg web front" }
+      sgasgwebadm:      { default: "Nombre del sg para asg web front admon"}
+      sgalbwebfrn:      { default: "Nombre del sg para el alb del front"}
+      TagCustomer:      { default: "Cliente" }
+      TagEvent:         { default: "Evento" }
+      TagVertical:      { default: "Vertical" }
+      TagTier:          { default: "Tier" }
+      TagRegion:        { default: "Región" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "Friendly identifier for tagging resources"
+    Default: dev
+    AllowedValues: [dev, test, prd, dr]
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: ID de la VPC donde crear los Security Groups
+
+  sgintweb:
+    Type: String
+    Description: "Nombre del grupo de seguridad para en vpce interface Static Web Site"
+    Default: "vpce-sg-ceed-juv-web-frn-dr-int-eus2-001"
+
+  sgasgweb:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web service"
+    Default: "asg-sg-ceed-juv-web-frn-dr-serv-eus2"
+
+  sgasgwebadm:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web admon"
+    Default: "asg-sg-ceed-juv-web-frn-dr-adm-eus2"
+
+  sgalbwebfrn:
+    Type: String
+    Description: "Nombre del grupo de seguridad para el ASG web admon"
+    Default: "asg-sg-ceed-juv-web-frn-dr-alb-eus2"
+
+  TagCustomer:
+    Type: String
+    Default: ceed
+  TagEvent:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: web
+    AllowedValues: [web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: front
+    AllowedValues: [front, back, data]
+  TagRegion:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+Resources:
+  SecurityGroupWeb:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgintweb
+      GroupDescription: !Sub "SG para trafico web en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+#        - IpProtocol: tcp
+#          FromPort: 443
+#          ToPort: 443
+#          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref SecurityGroupASG
+      Tags:
+        - Key: Name
+          Value: !Ref sgintweb
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  SecurityGroupASG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgasgweb
+      GroupDescription: !Sub "SG ASG en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Ref sgasgweb
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  SecurityGroupASGADM:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgasgwebadm
+      GroupDescription: !Sub "SG ASG en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Ref sgasgwebadm
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  SecurityGroupALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgalbwebfrn
+      GroupDescription: !Sub "SG ALB en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Ref sgalbwebfrn
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+Outputs:
+  WebSecurityGroupId:
+    Description: ID del Security Group para trafico web
+    Value: !Ref SecurityGroupWeb
+    Export:
+      Name: !Ref sgintweb
+
+  AsgSecurityGroupservId:
+    Description: ID del Security Group para ASG Front
+    Value: !Ref SecurityGroupASG
+    Export:
+      Name: !Ref sgasgweb
+
+  AsgSecurityGroupadmonId:
+    Description: ID del Security Group para ASG Front
+    Value: !Ref SecurityGroupASGADM
+    Export:
+      Name: !Ref sgasgwebadm
+
+  AlbSecurityGroupaId:
+    Description: ID del Security Group para ALB Front
+    Value: !Ref SecurityGroupALB
+    Export:
+      Name: !Ref sgalbwebfrn

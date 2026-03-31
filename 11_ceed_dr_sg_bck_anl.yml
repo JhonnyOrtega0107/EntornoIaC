@@ -1,0 +1,203 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Network Stack: VPC + Security Groups centrales para aplicaciones en AWS.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: 
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+      - Label:
+          default: "Configuración de Red"
+        Parameters:
+          - VpcId
+      - Label:
+          default: "Nombre de los Grupos de Seguridad"
+        Parameters:
+          - sgasganl
+          - sgasganladm
+          - sgalbanlbck
+      - Label:  
+            default: "Etiquetas SG - Back Analitica"
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName:  { default: "Entorno (dev | stest | prod | dr)" }
+      VpcId:            { default: "ID de la VPC" }
+      sgasganl:         { default: "Nombre del sg para asg analitica Back Servicios" }
+      sgasganladm:      { default: "Nombre del sg para asg analitica Back Admon" }
+      sgalbanlbck:      { default: "Nombre del sg para alb analitica Back" }
+      TagCustomer:      { default: "Cliente" }
+      TagEvent:         { default: "Evento" }
+      TagVertical:      { default: "Vertical" }
+      TagTier:          { default: "Tier" }
+      TagRegion:        { default: "Región" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "Friendly identifier for tagging resources"
+    Default: dev
+    AllowedValues: [dev, test, prd, dr]
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: ID de la VPC donde crear los Security Groups
+
+  sgasganl:
+    Type: String
+    Description: "Nombre del grupo de seguridad para asg servicios"
+    Default: "asg-sg-ceed-juv-anl-dr-bck-serv-eus2"
+
+  sgasganladm:
+    Type: String
+    Description: "Nombre del grupo de seguridad para en asg administración"
+    Default: "asg-sg-ceed-juv-anl-dr-bck-adm-eus2"
+
+  sgalbanlbck:
+    Type: String
+    Description: "Nombre del grupo de seguridad para alb back analitica"
+    Default: "alb-sg-ceed-juv-anl-dr-bck-eus2-001"
+
+  TagCustomer:
+    Type: String
+    Default: ceed
+  TagEvent:
+    Type: String
+    Default: juv
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: anl
+    AllowedValues: [web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: back
+    AllowedValues: [front, back, data]
+  TagRegion:
+    Type: String
+    Default: eus2
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+Resources:
+  SecurityGroupASGserv:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgasganl
+      GroupDescription: !Sub "SG para trafico web en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref SecurityGroupALB
+      Tags:
+        - Key: Name
+          Value: !Ref sgasganl
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  SecurityGroupASGadm:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgasganladm
+      GroupDescription: !Sub "SG ASG en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Ref sgasganladm
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+  SecurityGroupALB:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Ref sgalbanlbck
+      GroupDescription: !Sub "SG ALB en ${EnvironmentName}"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Ref sgalbanlbck
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+        - Key: Customer
+          Value: !Ref TagCustomer
+        - Key: Evento
+          Value: !Ref TagEvent
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Region
+          Value: !Ref TagRegion
+
+Outputs:
+
+  AsgSecurityGroupIdservanl:
+    Description: ID del Security Group para trafico ASG back analitica servicios
+    Value: !Ref SecurityGroupASGserv
+    Export:
+      Name: !Ref sgasganl
+
+  AsgSecurityGroupIdadmanl:
+    Description: ID del Security Group para ASG back analitica administración
+    Value: !Ref SecurityGroupASGadm
+    Export:
+      Name: !Ref sgasganladm
+
+  AlbSecurityGroupIdanl:
+    Description: ID del Security Group para ALB analitcia
+    Value: !Ref SecurityGroupALB
+    Export:
+      Name: !Ref sgalbanlbck

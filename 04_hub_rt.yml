@@ -1,0 +1,216 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Configura tablas de rutas y asociaciones de subnets en un VPC hub existente.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+      - Label:
+          default: "Amazon Route Table configurations hub"
+        Parameters:
+          - VpcId
+          - PublicSubnetIds
+          - AppSubnetIds
+      - Label:
+          default: "Transit Gateway ID"
+        Parameters:
+          - TransitGatewayId
+      - Label:
+          default: "Etiquetas - hub"
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName:  { default: "Environment (dev/test/prod)" }
+      VpcId:            { default: "VPC ID" }
+      PublicSubnetIds:  { default: "Comma-separated Public Subnet IDs" }
+      AppSubnetIds:     { default: "Comma-separated App Subnet IDs" }
+      TransitGatewayId: { default: "Transit Gateway ID" }
+      TagCustomer:      { default: "Nombre del cliente para el cual se va a implementar el recurso" }
+      TagEvent:         { default: "Evento en el que se utilizara el recurso" }
+      TagVertical:      { default: "Vertical a la que pertenecera el recurso" }
+      TagTier:          { default: "Capa a la que pertenecera el recurso" }
+      TagRegion:        { default: "Region en la que estara desplegado el recurso" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: >-
+      A friendly environment name that will be used for namespacing all
+      resources (valid options are dev, test or prod).
+    AllowedValues: [dev, dr, prd]
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Existing VPC ID.
+
+  PublicSubnetIds:
+    Type: CommaDelimitedList
+    Description: Comma-separated list of Public Subnet IDs to associate with the public route table.
+
+  AppSubnetIds:
+    Type: CommaDelimitedList
+    Description: Comma-separated list of App Subnet IDs to associate with the app route table.
+
+  TransitGatewayId:
+    Type: String
+    Description: Transit Gateway ID for spoke-hub traffic.
+
+  #Tags
+  TagCustomer:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEvent:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: "web"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: "back"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegion:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+Resources:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: "igw-ceed-hub-dr-eus2-001"
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId:             !Ref VpcId
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: "rt-ceed-hub-fw-dr-eus2-001"
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+
+  PrivateAppRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: "rt-ceed-hub-fw-dr-eus2-002"
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+
+  # Route for Public subnets
+  PublicInternetRoute:
+    DependsOn: AttachInternetGateway
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:         !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:            !Ref InternetGateway
+
+  PrivateAppRouteTGW:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateAppRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      TransitGatewayId: !Ref TransitGatewayId
+
+  # SubnetRouteTableAssociations for Public Subnets
+  PublicSubnet1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:     !Select [0, !Split [",", !Join [",", !Ref PublicSubnetIds ]]]
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:     !Select [1, !Split [",", !Join [",", !Ref PublicSubnetIds ]]]
+      RouteTableId: !Ref PublicRouteTable
+
+  PublicSubnet3Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:     !Select [2, !Split [",", !Join [",", !Ref PublicSubnetIds ]]]
+      RouteTableId: !Ref PublicRouteTable
+
+  # SubnetRouteTableAssociations for App Subnets
+  AppSubnet1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:     !Select [0, !Split [",", !Join [",", !Ref AppSubnetIds ]]]
+      RouteTableId: !Ref PrivateAppRouteTable
+
+  AppSubnet2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:     !Select [1, !Split [",", !Join [",", !Ref AppSubnetIds ]]]
+      RouteTableId: !Ref PrivateAppRouteTable
+
+  AppSubnet3Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:     !Select [2, !Split [",", !Join [",", !Ref AppSubnetIds ]]]
+      RouteTableId: !Ref PrivateAppRouteTable
+
+Outputs:
+  InternetGatewayId:
+    Description: VPC Internet Gateway ID
+    Value: !Ref InternetGateway
+
+  PublicRouteTableId:
+    Description: Public Route Table ID
+    Value: !Ref PublicRouteTable
+
+  PrivateAppRouteTableId:
+    Description: App Route Table ID
+    Value: !Ref PrivateAppRouteTable
+
+  TransitGatewayIdOutput:
+    Description: Transit Gateway ID utilizado
+    Value: !Ref TransitGatewayId

@@ -1,0 +1,207 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Transit Gateway para Hub en arquitectura Hub-and-Spoke.
+  Crea el Transit Gateway y lo asocia a la VPC Hub mediante los subnets indicados.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+
+      - Label:
+          default: "Transit Gateway Parameters"
+        Parameters:
+          - TransitGatewayNameTag
+          - TransitGatewayAsn
+
+      - Label:
+          default: "Transit Gateway Options"
+        Parameters:
+          - AutoAcceptSharedAttachments
+          - DefaultRouteTableAssociation
+          - DefaultRouteTablePropagation
+          - DnsSupportTGW
+
+      - Label:
+          default: "Flow Logs Configuration"
+        Parameters:
+          - EnableFlowLogs
+          - FlowLogGroupName
+
+      - Label:
+          default: "Amazon Hub VPC Parameters"
+        Parameters:
+          - AvailabilityZones
+          - NumberOfAZs
+#          - HubVpcId
+#          - HubSubnet0Id
+#          - HubSubnet1Id
+#          - HubSubnet2Id
+
+    ParameterLabels:
+      EnvironmentName:               { default: "Entorno (dev | dr | prd)" }
+      TransitGatewayNameTag:         { default: "Transit Gateway Name Tag" }
+      TransitGatewayAsn:             { default: "Amazon-side ASN" }
+      AutoAcceptSharedAttachments:   { default: "Auto-Accept Shared Attachments" }
+      DefaultRouteTableAssociation:  { default: "Default Route Table Association" }
+      DefaultRouteTablePropagation:  { default: "Default Route Table Propagation" }
+      DnsSupportTGW:                 { default: "DNS Support en TGW" }
+      EnableFlowLogs:                { default: "Activar Flow Logs?" }
+      FlowLogGroupName:              { default: "CloudWatch Log Group Name" }
+      AvailabilityZones:             { default: "Availability Zones" }
+      NumberOfAZs:                   { default: "Número de Availability Zones" }
+#      HubVpcId:                      { default: "Hub VPC ID" }
+#      HubSubnet0Id:                  { default: "Hub Subnet 0 ID" }
+#      HubSubnet1Id:                  { default: "Hub Subnet 1 ID" }
+#      HubSubnet2Id:                  { default: "Hub Subnet 2 ID" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    AllowedValues: [ dev, dr, prd ]
+    Default: dev
+    Description: "Entorno (dev, dr o prd)"
+
+  TransitGatewayNameTag:
+    Type: String
+    Default: tgw-ceed-hub-dr-eus2-001
+    Description: "Texto a usar en la etiqueta Name del Transit Gateway"
+
+  TransitGatewayAsn:
+    Type: Number
+    Default: 64512
+    Description: "Amazon-side ASN para BGP si aplica"
+
+  AutoAcceptSharedAttachments:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: disable
+    Description: "¿Auto-aceptar attachments compartidos?"
+
+  DefaultRouteTableAssociation:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: disable
+    Description: "¿Asociar rutas por defecto?"
+
+  DefaultRouteTablePropagation:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: disable
+    Description: "¿Propagar rutas por defecto?"
+  
+  DnsSupportTGW:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: enable
+    Description: "Soporte DNS en el Transit Gateway?"
+
+  EnableFlowLogs:
+    Type: String
+    AllowedValues: [ enable, disable ]
+    Default: disable
+    Description: "¿Activar Flow Logs para el Transit Gateway?"
+
+  FlowLogGroupName:
+    Type: String
+    Default: "/aws/transit-gateway/flow-logs"
+    Description: "Nombre del CloudWatch Log Group para los Flow Logs"
+
+  AvailabilityZones:
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+    Description: "Lista de AZs para los subnets de la VPC Hub"
+
+  NumberOfAZs:
+    Type: Number
+    AllowedValues: [ 1, 2, 3 ]
+    Default: 2
+    Description: "Número de AZs a usar (debe coincidir con AvailabilityZones)"
+
+#  HubVpcId:
+#    Type: AWS::EC2::VPC::Id
+#    Description: "ID de la VPC Hub donde está el firewall/WAF"
+
+#  HubSubnet0Id:
+#    Type: AWS::EC2::Subnet::Id
+#    Description: "Subnet en AZ[0] para la attachment al TGW"
+
+#  HubSubnet1Id:
+#    Type: AWS::EC2::Subnet::Id
+#    Description: "Subnet en AZ[1] para la attachment al TGW"
+
+#  HubSubnet2Id:
+#    Type: AWS::EC2::Subnet::Id
+#    Description: "Subnet en AZ[2] para la attachment al TGW"
+
+Conditions:
+#  AZ0: !Or [ !Equals [ !Ref NumberOfAZs, 1 ], !Equals [ !Ref NumberOfAZs, 2 ], !Equals [ !Ref NumberOfAZs, 3 ] ]
+#  AZ1: !Or [ !Equals [ !Ref NumberOfAZs, 2 ], !Equals [ !Ref NumberOfAZs, 3 ] ]
+#  AZ2: !Equals [ !Ref NumberOfAZs, 3 ]
+  CreateFlowLogs: !Equals [ !Ref EnableFlowLogs, enable ]
+
+Resources:
+  TransitGateway:
+    Type: AWS::EC2::TransitGateway
+    Properties:
+      Description: !Sub "${EnvironmentName}-${TransitGatewayNameTag}"
+      AmazonSideAsn: !Ref TransitGatewayAsn
+      AutoAcceptSharedAttachments: !Ref AutoAcceptSharedAttachments
+      DefaultRouteTableAssociation: !Ref DefaultRouteTableAssociation
+      DefaultRouteTablePropagation: !Ref DefaultRouteTablePropagation
+      DnsSupport: !Ref DnsSupportTGW
+      Tags:
+        - Key: Name
+          Value: !Ref TransitGatewayNameTag
+
+#  TransitGatewayAttachmentToHub:
+#    Type: AWS::EC2::TransitGatewayAttachment
+#    Properties:
+#      TransitGatewayId: !Ref TransitGateway
+#      VpcId: !Ref HubVpcId
+#      SubnetIds:
+#        - !If [ AZ0, !Ref HubSubnet0Id, !Ref "AWS::NoValue" ]
+#        - !If [ AZ1, !Ref HubSubnet1Id, !Ref "AWS::NoValue" ]
+#        - !If [ AZ2, !Ref HubSubnet2Id, !Ref "AWS::NoValue" ]
+#      Options:
+#        ApplianceModeSupport: enable
+#        DnsSupport: enable
+#      Tags:
+#        - Key: Name
+#          Value: tgw-attach-dr-hub-eus2
+
+  TransitGatewayFlowLogsLogGroup:
+    Condition: CreateFlowLogs
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref FlowLogGroupName
+      RetentionInDays: 7
+
+  TransitGatewayFlowLog:
+    Condition: CreateFlowLogs
+    Type: AWS::EC2::TransitGatewayFlowLog
+    Properties:
+      TransitGatewayId: !Ref TransitGateway
+      LogDestinationType: cloud-watch-logs
+      LogGroupName: !Ref TransitGatewayFlowLogsLogGroup
+      TrafficType: ALL
+
+Outputs:
+  TransitGatewayId:
+    Description: "ID del Transit Gateway"
+    Value: !Ref TransitGateway
+
+#  TransitGatewayAttachmentId:
+#    Description: "ID de la attachment de la VPC Hub al TGW"
+#    Value: !Ref TransitGatewayAttachmentToHub
+
+#  HubSubnetIds:
+#    Description: "Lista de Subnet IDs usadas en la attachment"
+#    Value: !Join
+#      - ","
+#      - - !If [ AZ0, !Ref HubSubnet0Id, !Ref "AWS::NoValue" ]
+#        - !If [ AZ1, !Ref HubSubnet1Id, !Ref "AWS::NoValue" ]
+#        - !If [ AZ2, !Ref HubSubnet2Id, !Ref "AWS::NoValue" ]

@@ -1,0 +1,322 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  This template creates an Auto Scaling Group for Ceed by Bextsa,
+  allowing you to pass in the exact Security Group IDs and an IAM Role,
+  and ensures Scaling Policies are created only after the ASG exists.
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: "Configuración del Proyecto" }
+        Parameters:
+          - EnvironmentName
+          - InstanceRoleName
+      - Label: { default: "Parámetros del Launch Template" }
+        Parameters:
+          - LaunchTemplateName
+          - ImageId
+          - InstanceType
+          - KeyName
+      - Label: { default: "Parámetros de Seguridad" }
+        Parameters:
+          - AsgSecurityGroupId
+          - ManagementSecurityGroupId
+      - Label: { default: "Red y Autoescalado" }
+        Parameters:
+          - VpcId
+          - SubnetIds
+          - AutoScalingGroupName
+          - MinSize
+          - MaxSize
+          - DesiredCapacity
+          - TargetGroupArn
+      - Label: { default: "Etiquetas" }
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName:           { default: "Entorno (prd/dr)" }
+      InstanceRoleName:          { default: "Nombre del IAM Role para EC2" }
+      LaunchTemplateName:        { default: "Nombre de la plantilla de lanzamiento" }
+      ImageId:                   { default: "ID de la AMI EC2" }
+      InstanceType:              { default: "Tipo de instancia EC2" }
+      KeyName:                   { default: "Nombre del par SSH" }
+      AsgSecurityGroupId:        { default: "ID del Security Group para el ASG" }
+      ManagementSecurityGroupId: { default: "ID del Security Group de gestión" }
+      VpcId:                     { default: "ID del VPC" }
+      SubnetIds:                 { default: "IDs de Subredes" }
+      AutoScalingGroupName:      { default: "Nombre del Auto Scaling Group" }
+      MinSize:                   { default: "Número mínimo de instancias" }
+      MaxSize:                   { default: "Número máximo de instancias" }
+      DesiredCapacity:           { default: "Número deseado de instancias" }
+      TargetGroupArn:            { default: "ARN del Target Group" }
+      TagCustomer:               { default: "Cliente" }
+      TagEvent:                  { default: "Evento" }
+      TagVertical:               { default: "Vertical" }
+      TagTier:                   { default: "Tier" }
+      TagRegion:                 { default: "Región" }
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "A friendly environment name that will be used for namespacing all resources (valid options are dev, staging or production)"
+    AllowedValues: [dev, dr, prd]
+  InstanceRoleName:
+    Type: String
+    Description: "Nombre del IAM Role que asumirán las instancias EC2"
+
+  LaunchTemplateName:
+    Type: String
+    Description: "Nombre de la plantilla de lanzamiento"
+  ImageId:
+    Type: AWS::EC2::Image::Id
+    Default: "ami-020cba7c55df1f615"
+    Description: "AMI EC2 para las instancias"
+  InstanceType:
+    Type: String
+    Default: "t3.micro"
+    Description: "Tipo de instancia EC2"
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t2.xlarge
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - c6i.large
+      - c6i.xlarge
+      - c6i.2xlarge
+      - c6i.4xlarge
+      - c6i.8xlarge
+      - c6in.large
+      - c6in.xlarge
+      - c6in.2xlarge
+      - c6in.4xlarge
+      - c6in.8xlarge
+      - c6in.12xlarge
+      - r6i.large
+      - r6i.xlarge
+      - r6i.2xlarge
+      - r6i.4xlarge
+    ConstraintDescription: "Elija un tipo de instancia válido."
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Par de claves SSH para EC2"
+
+  AsgSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: "ID del Security Group para el ASG (p.ej. sg-0abc1234)"
+  ManagementSecurityGroupId:
+    Type: AWS::EC2::SecurityGroup::Id
+    Description: "ID del Security Group de gestión (p.ej. sg-0def5678)"
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: "ID del VPC donde desplegar el ASG"
+  SubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: "Lista de subredes para el ASG"
+  AutoScalingGroupName:
+    Type: String
+    Description: "Nombre del Auto Scaling Group"
+  MinSize:
+    Type: Number
+    Description: "Número mínimo de instancias EC2"
+  MaxSize:
+    Type: Number
+    Description: "Número máximo de instancias EC2"
+  DesiredCapacity:
+    Type: Number
+    Description: "Número deseado de instancias EC2 al inicio"
+  TargetGroupArn:
+    Type: String
+    Description: "ARN del Target Group del Load Balancer"
+
+  TagCustomer:
+    Type: String
+    Default: "ceed"
+    Description: "Etiqueta de cliente"
+  TagEvent:
+    Type: String
+    Default: "juv"
+    Description: "Etiqueta de evento"
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: "web"
+    Description: "Etiqueta de vertical"
+    AllowedValues: [web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: "front"
+    Description: "Etiqueta de tier"
+    AllowedValues: [front, back, data]
+  TagRegion:
+    Type: String
+    Default: "eus2"
+    Description: "Etiqueta de región"
+    AllowedValues: [eus1, eus2, wus1, wus2]
+
+Resources:
+  EC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Sub "${EnvironmentName}-InstanceProfile"
+      Path: "/"
+      Roles:
+        - !Ref InstanceRoleName
+
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: !Ref LaunchTemplateName
+      LaunchTemplateData:
+        ImageId: !Ref ImageId
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyName
+        SecurityGroupIds:
+          - !Ref AsgSecurityGroupId
+          - !Ref ManagementSecurityGroupId
+        IamInstanceProfile:
+          Arn: !GetAtt EC2InstanceProfile.Arn
+        BlockDeviceMappings:
+          - DeviceName: "/dev/sda1"
+            Ebs:
+              VolumeType: gp3
+              VolumeSize: 64
+              Encrypted: true
+        TagSpecifications:
+          - ResourceType: "instance"
+            Tags:
+              - Key: Name
+                Value: !Ref LaunchTemplateName
+              - Key: Environment
+                Value: !Ref EnvironmentName
+              - Key: Vertical
+                Value: !Ref TagVertical
+              - Key: Event
+                Value: !Ref TagEvent
+              - Key: Region
+                Value: !Ref TagRegion
+              - Key: CFStack
+                Value: !Ref "AWS::StackName"
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroupName
+      VPCZoneIdentifier: !Ref SubnetIds
+      MinSize: !Ref MinSize
+      MaxSize: !Ref MaxSize
+      DesiredCapacity: !Ref DesiredCapacity
+      LaunchTemplate:
+        LaunchTemplateName: !Ref LaunchTemplateName
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      TargetGroupARNs:
+        - !Ref TargetGroupArn
+      Tags:
+        - Key: Name
+          Value: !Ref AutoScalingGroupName
+          PropagateAtLaunch: true
+        - Key: Env
+          Value: !Ref EnvironmentName
+          PropagateAtLaunch: true
+        - Key: Vertical
+          Value: !Ref TagVertical
+          PropagateAtLaunch: true
+        - Key: Event
+          Value: !Ref TagEvent
+          PropagateAtLaunch: true
+        - Key: Tier
+          Value: !Ref TagTier
+          PropagateAtLaunch: true
+        - Key: Region
+          Value: !Ref TagRegion
+          PropagateAtLaunch: true
+        - Key: CFStack
+          Value: !Ref "AWS::StackName"
+          PropagateAtLaunch: true
+
+  # Ensure policies only create after ASG exists
+  CreateInstancePolicyWeb:
+    Type: AWS::AutoScaling::ScalingPolicy
+    DependsOn: AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: 1
+      Cooldown: 300
+
+  DeleteInstancePolicyWeb:
+    Type: AWS::AutoScaling::ScalingPolicy
+    DependsOn: AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Ref AutoScalingGroup
+      AdjustmentType: ChangeInCapacity
+      ScalingAdjustment: -1
+      Cooldown: 300
+
+  CreateInstanceAlarmCPUHighClapWeb:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: CreateInstancePolicyWeb
+    Properties:
+      AlarmName: !Sub "Web-CreateInstance-High-CPU-Utilization-Alarm-${AutoScalingGroupName}"
+      AlarmDescription: "Alarma si CPU alta"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 60
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref CreateInstancePolicyWeb
+
+  DeleteInstanceAlarmCPULowClapWeb:
+    Type: AWS::CloudWatch::Alarm
+    DependsOn: DeleteInstancePolicyWeb
+    Properties:
+      AlarmName: !Sub "Web-DeleteInstance-Low-CPU-Utilization-Alarm-${AutoScalingGroupName}"
+      AlarmDescription: "Alarma si CPU baja"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: AutoScalingGroupName
+          Value: !Ref AutoScalingGroup
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 2
+      Threshold: 20
+      ComparisonOperator: LessThanOrEqualToThreshold
+      AlarmActions:
+        - !Ref DeleteInstancePolicyWeb
+
+Outputs:
+  InstanceProfileArnfrnweb:
+    Description: "ARN del Instance Profile creado"
+    Value: !GetAtt EC2InstanceProfile.Arn
+
+  LaunchTemplateIdfrnweb:
+    Description: "ID del Launch Template"
+    Value: !Ref LaunchTemplate
+
+  AutoScalingGroupNamefrnweb:
+    Description: "Nombre del ASG creado"
+    Value: !Ref AutoScalingGroup

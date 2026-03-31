@@ -1,0 +1,519 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Reference Architecture on AWS - Creates New VPC
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: "Project Configuration"
+        Parameters:
+          - EnvironmentName
+
+      - Label:
+          default: Amazon VPC Parameters
+        Parameters:
+          - NumberOfAZs
+          - AvailabilityZones
+          - VpcCidr
+
+      - Label:
+          default: Amazon Subnets Parameters
+        Parameters:
+          - PublicSubnet0Cidr
+          - PublicSubnet1Cidr
+          - PublicSubnet2Cidr
+          - AppSubnet0Cidr
+          - AppSubnet1Cidr
+          - AppSubnet2Cidr
+#          - DataSubnet0Cidr
+#          - DataSubnet1Cidr
+#          - DataSubnet2Cidr
+
+      - Label:
+          default: "Etiquetas - Spoke Back App Movil"
+        Parameters:
+          - TagCustomer
+          - TagEvent
+          - TagVertical
+          - TagTier
+          - TagRegion
+
+    ParameterLabels:
+      EnvironmentName: {default: "Environment"}
+      AvailabilityZones: {default: Availability Zones}
+      NumberOfAZs: {default: Number of Availability Zones}
+      VpcCidr: {default: VpcCidr}
+      PublicSubnet0Cidr: {default: Public Subnet 0}
+      PublicSubnet1Cidr: {default: Public Subnet 1}
+      PublicSubnet2Cidr: {default: Public Subnet 2}
+      AppSubnet0Cidr: {default: App Subnet 0}
+      AppSubnet1Cidr: {default: App Subnet 1}
+      AppSubnet2Cidr: {default: App Subnet 2}
+#      DataSubnet0Cidr: {default: Data Subnet 0}
+#      DataSubnet1Cidr: {default: Data Subnet 1}
+#      DataSubnet2Cidr: {default: Data Subnet 2}
+      TagCustomer: {default: "Nombre del cliente para el cual se va a implementar el recurso"}
+      TagEvent: {default: "Evento en el que se utilizara el recurso"}
+      TagVertical: {default: "Vertical a la que pertenecera el recurso"}
+      TagTier: {default: "Capa a la que pertenecera el recurso"}
+      TagRegion: {default: "Region en la que estara desplegado el recurso"}
+
+Parameters:
+  EnvironmentName:
+    Type: String
+    Description: "A friendly environment name that will be used for namespacing all resources (valid options are dev, staging or production)"
+    AllowedValues: [dev, dr, prd]
+
+  AvailabilityZones:
+    Description:
+      "List of Availability Zones to use for the subnets in the VPC. Note:
+      The logical order is preserved."
+    Type: List<AWS::EC2::AvailabilityZone::Name>
+
+  NumberOfAZs:
+    AllowedValues:
+      - 1
+      - 2
+      - 3
+    Default: 2
+    Description:
+      Number of Availability Zones to use in the VPC. This must match your
+      selections in the list of Availability Zones parameter.
+    Type: Number
+
+  VpcCidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.0.0/16
+    Description: CIDR block for the VPC
+    Type: String
+
+#  DataSubnet0Cidr:
+#    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+#    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+#    Default: 10.0.100.0/24
+#    Description: CIDR block for data subnet 0 located in Availability Zone 0
+#    Type: String
+
+#  DataSubnet1Cidr:
+#    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+#    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+#    Default: 10.0.101.0/24
+#    Description: CIDR block for data subnet 1 located in Availability Zone 1
+#    Type: String
+
+#  DataSubnet2Cidr:
+#    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+#    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+#    Default: 10.0.102.0/24
+#    Description: CIDR block for data subnet 2 located in Availability Zone 2
+#    Type: String
+
+  PublicSubnet0Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.200.0/24
+    Description: CIDR block for Public subnet 0 located in Availability Zone 0
+    Type: String
+
+  PublicSubnet1Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.201.0/24
+    Description: CIDR block for Public subnet 1 located in Availability Zone 1
+    Type: String
+
+  PublicSubnet2Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.202.0/24
+    Description: CIDR block for Public subnet 2 located in Availability Zone 2
+    Type: String
+
+  AppSubnet0Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.0.0/22
+    Description: CIDR block for App Subnet 0 located in Availability Zone 0
+    Type: String
+
+  AppSubnet1Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.4.0/22
+    Description: CIDR block for App Subnet 1 located in Availability Zone 1
+    Type: String
+
+  AppSubnet2Cidr:
+    AllowedPattern: "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$"
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/16-28
+    Default: 10.0.8.0/22
+    Description: CIDR block for App Subnet 2 located in Availability Zone 2
+    Type: String
+
+  #Tags
+  TagCustomer:
+    Type: String
+    Default: "ceed"
+    Description: "Nombre del cliente"
+  TagEvent:
+    Type: String
+    Default: "juv"
+    Description: "Evento"
+    AllowedValues: [juv, conpre]
+  TagVertical:
+    Type: String
+    Default: "web"
+    Description: "Vertical"
+    AllowedValues: [hub, web, movil, anl, pm]
+  TagTier:
+    Type: String
+    Default: "back"
+    Description: "Tier"
+    AllowedValues: [seg, front, back, data]
+  TagRegion:
+    Type: String
+    Default: "eus2"
+    Description: "Region"
+    AllowedValues: [eus1, eus2, wus1,wus2]
+
+Conditions:
+  NumberOfAZs1: !Equals ["1", !Ref NumberOfAZs]
+  NumberOfAZs2: !Equals ["2", !Ref NumberOfAZs]
+  NumberOfAZs3: !Equals ["3", !Ref NumberOfAZs]
+  AZ0: !Or
+    - !Condition NumberOfAZs1
+    - !Condition NumberOfAZs2
+    - !Condition NumberOfAZs3
+  AZ1: !Or
+    - !Condition NumberOfAZs2
+    - !Condition NumberOfAZs3
+  AZ2: !Condition NumberOfAZs3
+
+Resources:
+  Vpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+        - Key: Name
+          Value: vpc-ceed-spk-app-juv-dr-eus2-001
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+
+  PublicSubnet0:
+    Condition: AZ0
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !Ref AvailabilityZones]
+      CidrBlock: !Ref PublicSubnet0Cidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-ceed-spk-app-back-dr-eus2a-001
+        - Key: SubnetType
+          Value: Private
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+      VpcId: !Ref Vpc
+
+  PublicSubnet1:
+    Condition: AZ1
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !Ref AvailabilityZones]
+      CidrBlock: !Ref PublicSubnet1Cidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-ceed-spk-app-back-dr-eus2b-002
+        - Key: SubnetType
+          Value: Private
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+      VpcId: !Ref Vpc
+
+  PublicSubnet2:
+    Condition: AZ2
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [2, !Ref AvailabilityZones]
+      CidrBlock: !Ref PublicSubnet2Cidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-ceed-spk-app-back-dr-eus2c-003
+        - Key: SubnetType
+          Value: Private
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+      VpcId: !Ref Vpc
+
+  AppSubnet0:
+    Condition: AZ0
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [0, !Ref AvailabilityZones]
+      CidrBlock: !Ref AppSubnet0Cidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-ceed-spk-app-back-dr-eus2a-004
+        - Key: SubnetType
+          Value: Private
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+      VpcId: !Ref Vpc
+
+  AppSubnet1:
+    Condition: AZ1
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [1, !Ref AvailabilityZones]
+      CidrBlock: !Ref AppSubnet1Cidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-ceed-spk-app-back-dr-eus2b-005
+        - Key: SubnetType
+          Value: Private
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+      VpcId: !Ref Vpc
+
+  AppSubnet2:
+    Condition: AZ2
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: !Select [2, !Ref AvailabilityZones]
+      CidrBlock: !Ref AppSubnet2Cidr
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: subnet-ceed-spk-app-back-dr-eus2c-006
+        - Key: SubnetType
+          Value: Private
+        - Key: Environment
+          Value: !Ref EnvironmentName
+        - Key: Vertical
+          Value: !Ref TagVertical
+        - Key: Tier
+          Value: !Ref TagTier
+        - Key: Event
+          Value: !Ref TagEvent
+        - Key: CFStack
+          Value: !Ref 'AWS::StackName'
+      VpcId: !Ref Vpc
+
+#  DataSubnet0:
+#    Condition: AZ0
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      AvailabilityZone: !Select [0, !Ref AvailabilityZones]
+#      CidrBlock: !Ref DataSubnet0Cidr
+#      MapPublicIpOnLaunch: false
+#      Tags:
+#        - Key: Name
+#          Value:
+#            !Join [
+#              "",
+#              ["DataSnet01", "-", !Ref "EnvironmentName", "-", "avi", "-", "us-east-1", "-", "a"],
+#            ]
+#        - Key: SubnetType
+#          Value: Private
+#      VpcId: !Ref Vpc
+
+#  DataSubnet1:
+#    Condition: AZ1
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      AvailabilityZone: !Select [1, !Ref AvailabilityZones]
+#      CidrBlock: !Ref DataSubnet1Cidr
+#      MapPublicIpOnLaunch: false
+#      Tags:
+#        - Key: Name
+#          Value:
+#            !Join [
+#              "",
+#              ["DataSnet02", "-", !Ref "EnvironmentName", "-",  "avi-", "us-east-1", "-", "b"],
+#            ]
+#        - Key: SubnetType
+#          Value: Private
+#      VpcId: !Ref Vpc
+
+#  DataSubnet2:
+#    Condition: AZ2
+#    Type: AWS::EC2::Subnet
+#    Properties:
+#      AvailabilityZone: !Select [2, !Ref AvailabilityZones]
+#      CidrBlock: !Ref DataSubnet2Cidr
+#      MapPublicIpOnLaunch: false
+#      Tags:
+#        - Key: Name
+#          Value:
+#            !Join [
+#              "",
+#              ["DataSnet03", "-", !Ref "EnvironmentName", "-",  "avi-", "us-east-1", "-", "c"],
+#            ]
+#        - Key: SubnetType
+#          Value: Private
+#      VpcId: !Ref Vpc
+
+#  InternetGateway:
+#    Type: AWS::EC2::InternetGateway
+#    Properties:
+#      Tags:
+#        - Key: Name
+#          Value:
+#            !Join [
+#              "",
+#              [
+#                "igw",
+#                "-",
+#                !Ref "EnvironmentName",
+#                "-",
+#                "avi",
+#                "-",
+#                "us-east-1"
+#              ],
+#            ]
+
+#  AttachInternetGateway:
+#    Type: AWS::EC2::VPCGatewayAttachment
+#    Properties:
+#      InternetGatewayId: !Ref InternetGateway
+#      VpcId: !Ref Vpc
+
+Outputs:
+  VpcIdbackam:
+    Description: ID of the VPC
+    Value: !Ref Vpc
+
+  PublicSubnet0Idbackam:
+    Description: ID of the public subnet 1
+    Value: !If [AZ0, !Ref PublicSubnet0, "Subnet not created"]
+
+  PublicSubnet1Idbackam:
+    Description: ID of the public subnet 2
+    Value: !If [AZ1, !Ref PublicSubnet1, "Subnet not created"]
+
+  PublicSubnet2Idbackam:
+    Description: ID of the public subnet 3
+    Value: !If [AZ2, !Ref PublicSubnet2, "Subnet not created"]
+
+#  DataSubnet0Id:
+#    Description: ID of the data subnet 1
+#    Value: !If [AZ0, !Ref DataSubnet0, "Subnet not created"]
+
+#  DataSubnet1Id:
+#    Description: ID of the data subnet 2
+#    Value: !If [AZ1, !Ref DataSubnet1, "Subnet not created"]
+
+#  DataSubnet2Id:
+#    Description: ID of the data subnet 3
+#    Value: !If [AZ2, !Ref DataSubnet2, "Subnet not created"]
+
+  AppSubnet0Idbackam:
+    Description: ID of the app subnet 1
+    Value: !If [AZ0, !Ref AppSubnet0, "Subnet not created"]
+
+  AppSubnet1Idbackam:
+    Description: ID of the app subnet 2
+    Value: !If [AZ1, !Ref AppSubnet1, "Subnet not created"]
+
+  AppSubnet2Idbackam:
+    Description: ID of the app subnet 3
+    Value: !If [AZ2, !Ref AppSubnet2, "Subnet not created"]
+  
+  PublicSubnetsbackam:
+    Description: A list of the public subnets
+    Value: !Join [",", [!Ref PublicSubnet0, !Ref PublicSubnet1]]
+  
+  AppSubnetsbackam:
+    Description: A list of the app subnets
+    Value: !Join [",", [!Ref AppSubnet0, !Ref AppSubnet1]]
+
+#  DataSubnets:
+#    Description: A list of the Data subnets
+#    Value: !Join [",", [!Ref DataSubnet0, !Ref DataSubnet1]]
+
+#  InternetGatewayId:
+#    Description: ID of the internet gateway
+#    Value: !Ref InternetGateway
+
+  PublicSubnetIdsbackam:
+    Description: Comma-separated list of Public subnet IDs
+    Value: !Join
+      - ","
+      - - !If [AZ0, !Ref PublicSubnet0, !Ref "AWS::NoValue"]
+        - !If [AZ1, !Ref PublicSubnet1, !Ref "AWS::NoValue"]
+        - !If [AZ2, !Ref PublicSubnet2, !Ref "AWS::NoValue"]
+
+  AppSubnetIdsbackam:
+    Description: Comma-separated list of App subnet IDs
+    Value: !Join
+      - ","
+      - - !If [AZ0, !Ref AppSubnet0, !Ref "AWS::NoValue"]
+        - !If [AZ1, !Ref AppSubnet1, !Ref "AWS::NoValue"]
+        - !If [AZ2, !Ref AppSubnet2, !Ref "AWS::NoValue"]
+
+  #DataSubnetIds:
+  #  Description: Comma-separated list of Data subnet IDs
+  #  Value: !Join
+  #    - ","
+  #    - - !If [AZ0, !Ref DataSubnet0, !Ref "AWS::NoValue"]
+  #      - !If [AZ1, !Ref DataSubnet1, !Ref "AWS::NoValue"]
+  #      - !If [AZ2, !Ref DataSubnet2, !Ref "AWS::NoValue"]
+
+  # Output definitions for subnet IDs...
