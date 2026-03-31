@@ -119,30 +119,30 @@ Metadata:
           - TagTierfrn
           - TagRegionfrn
 
-      # - Label:  
-      #     default: " 2.6 Naming S3, PrivateLink"
-      #   Parameters: 
-      #     - BucketNamefrn
-      #     - InterfaceEndpointNamefrn
-      #     - GatewayEndpointNamefrn
-      #     - EnableLifecyclefrn
+      - Label:  
+          default: " 2.6 Naming S3, PrivateLink"
+        Parameters: 
+          - BucketNamefrn
+          - InterfaceEndpointNamefrn
+          - GatewayEndpointNamefrn
+          - EnableLifecyclefrn
 
-      # - Label:
-      #     default: "2.7 Parámetros del Launch Template ASG"
-      #   Parameters:
-      #     - LaunchTemplateNamefw
-      #     - InstanceRoleNamefw
-      #     - ImageIdfw
-      #     - InstanceTypefw
-      #     - KeyNamefw
+      - Label:
+          default: "2.7 Parámetros del Launch Template ASG"
+        Parameters:
+          - LaunchTemplateNamefw
+          - InstanceRoleNamefw
+          - ImageIdfw
+          - InstanceTypefw
+          - KeyNamefw
 
-      # - Label: 
-      #     default: "2.8 Parametros ambiente Autoescalado" 
-      #   Parameters:
-      #     - AutoScalingGroupNamefw
-      #     - MinSizefw
-      #     - MaxSizefw
-      #     - DesiredCapacityfw
+      - Label: 
+          default: "2.8 Parametros ambiente Autoescalado" 
+        Parameters:
+          - AutoScalingGroupNamefw
+          - MinSizefw
+          - MaxSizefw
+          - DesiredCapacityfw
 
       # VPC Back web
       - Label:
