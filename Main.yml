@@ -1835,7 +1835,7 @@ Parameters:
 # Path Templates
 #############################################################################################
   TemplateURL:
-    Description: "S3 cloudformation templates path"
+    Description: "S3 cloudformation template URL"
     Type: String
     Default: https://jhonnyobucket.s3.us-east-1.amazonaws.com
 
