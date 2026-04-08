@@ -235,7 +235,7 @@ Resources:
       MinSize: !Ref MinSize
       MaxSize: !Ref MaxSize
       DesiredCapacity: !Ref DesiredCapacity
-      HealthCheckType: ELB
+      HealthCheckType: EC2,ELB
       LaunchTemplate:
         LaunchTemplateName: !Ref LaunchTemplateName
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
